@@ -1,0 +1,10 @@
+{
+  "pages": [
+    "introduction",
+    "card",
+    "technical",
+    "incentives",
+    "user-guides",
+    "api-reference"
+  ]
+}
