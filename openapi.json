@@ -1,0 +1,524 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ISO 8583 ARQC to ERC-4337 Bundler API",
+    "version": "1.0.0",
+    "description": "A middleware service that processes ISO 8583 ARQC messages and submits EMV transactions to the blockchain via ERC-4337 UserOperations."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Info",
+      "description": "Service information endpoints"
+    },
+    {
+      "name": "Health",
+      "description": "Health check and status endpoints"
+    },
+    {
+      "name": "ARQC",
+      "description": "ISO 8583 ARQC processing endpoints"
+    },
+    {
+      "name": "Monitoring",
+      "description": "Prometheus metrics and monitoring endpoints"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "ISO8583ARQCMessage": {
+        "type": "object",
+        "properties": {
+          "mti": {
+            "type": "string",
+            "pattern": "^0100$"
+          },
+          "fields": {
+            "type": "object",
+            "properties": {
+              "2": {
+                "type": "string"
+              },
+              "3": {
+                "type": "string"
+              },
+              "4": {
+                "type": "string"
+              },
+              "11": {
+                "type": "string"
+              },
+              "12": {
+                "type": "string"
+              },
+              "13": {
+                "type": "string"
+              },
+              "14": {
+                "type": "string"
+              },
+              "18": {
+                "type": "string"
+              },
+              "22": {
+                "type": "string"
+              },
+              "23": {
+                "type": "string"
+              },
+              "25": {
+                "type": "string"
+              },
+              "35": {
+                "type": "string"
+              },
+              "37": {
+                "type": "string"
+              },
+              "41": {
+                "type": "string"
+              },
+              "42": {
+                "type": "string"
+              },
+              "43": {
+                "type": "string"
+              },
+              "49": {
+                "type": "string"
+              },
+              "55": {
+                "type": "string"
+              },
+              "62": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "62"
+            ]
+          }
+        },
+        "required": [
+          "mti",
+          "fields"
+        ],
+        "description": "ISO 8583 Authorization Request Cryptogram (ARQC) message. Wire format is binary."
+      },
+      "ISO8583ARPCMessage": {
+        "type": "object",
+        "properties": {
+          "mti": {
+            "type": "string",
+            "pattern": "^0110$"
+          },
+          "fields": {
+            "type": "object",
+            "properties": {
+              "2": {
+                "type": "string"
+              },
+              "3": {
+                "type": "string"
+              },
+              "4": {
+                "type": "string"
+              },
+              "11": {
+                "type": "string"
+              },
+              "12": {
+                "type": "string"
+              },
+              "13": {
+                "type": "string"
+              },
+              "37": {
+                "type": "string"
+              },
+              "38": {
+                "type": "string"
+              },
+              "39": {
+                "type": "string"
+              },
+              "41": {
+                "type": "string"
+              },
+              "42": {
+                "type": "string"
+              },
+              "55": {
+                "type": "string"
+              },
+              "62": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "39"
+            ]
+          }
+        },
+        "required": [
+          "mti",
+          "fields"
+        ],
+        "description": "ISO 8583 Authorization Response Cryptogram (ARPC) message. Wire format is binary."
+      },
+      "DE62RSAData": {
+        "type": "object",
+        "properties": {
+          "modulus": {
+            "type": "string"
+          },
+          "exponent": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "modulus",
+          "exponent",
+          "signature"
+        ],
+        "description": "DE62 RSA data: public key (modulus + exponent) and signature for EMV validation."
+      },
+      "DE62EMVData": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "terminalCountry": {
+            "type": "string"
+          },
+          "terminalVerificationResults": {
+            "type": "string"
+          },
+          "transactionDate": {
+            "type": "string"
+          },
+          "transactionType": {
+            "type": "string"
+          },
+          "unpredictableNumber": {
+            "type": "string"
+          },
+          "applicationInterchangeProfile": {
+            "type": "string"
+          },
+          "applicationTransactionCounter": {
+            "type": "string"
+          },
+          "cryptogram": {
+            "type": "string"
+          },
+          "cryptogramInformationData": {
+            "type": "string"
+          },
+          "issuerApplicationData": {
+            "type": "string"
+          },
+          "terminalCapabilities": {
+            "type": "string"
+          },
+          "cvmResults": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "currency",
+          "terminalCountry",
+          "terminalVerificationResults",
+          "transactionDate",
+          "transactionType",
+          "unpredictableNumber",
+          "applicationInterchangeProfile",
+          "applicationTransactionCounter",
+          "cryptogram",
+          "cryptogramInformationData"
+        ],
+        "description": "DE55 EMV/ICC data extracted from TLV-encoded field."
+      },
+      "ServiceInfo": {
+        "type": "object",
+        "properties": {
+          "service": {
+            "type": "string",
+            "example": "ISO 8583 ARQC to ERC-4337 Bundler"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.0.0"
+          },
+          "endpoints": {
+            "type": "object",
+            "properties": {
+              "health": {
+                "type": "string",
+                "example": "GET /health"
+              },
+              "arqc": {
+                "type": "string",
+                "example": "POST /arqc (application/octet-stream)"
+              },
+              "metrics": {
+                "type": "string",
+                "example": "GET /metrics"
+              },
+              "docs": {
+                "type": "string",
+                "example": "GET /docs"
+              }
+            },
+            "required": [
+              "health",
+              "arqc",
+              "metrics",
+              "docs"
+            ]
+          }
+        },
+        "required": [
+          "service",
+          "version",
+          "endpoints"
+        ]
+      },
+      "ContractAddresses": {
+        "type": "object",
+        "properties": {
+          "emvValidator": {
+            "type": "string",
+            "example": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+          },
+          "emvSettlement": {
+            "type": "string",
+            "example": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+          }
+        },
+        "required": [
+          "emvValidator",
+          "emvSettlement"
+        ]
+      },
+      "DatabaseHealth": {
+        "type": "object",
+        "properties": {
+          "healthy": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "healthy"
+        ]
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "description": "Overall service health status"
+          },
+          "service": {
+            "type": "string",
+            "example": "iso8583-bundler"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sponsor": {
+            "type": "string",
+            "example": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+          },
+          "contracts": {
+            "$ref": "#/components/schemas/ContractAddresses"
+          },
+          "database": {
+            "$ref": "#/components/schemas/DatabaseHealth"
+          }
+        },
+        "required": [
+          "status",
+          "service",
+          "timestamp",
+          "sponsor",
+          "contracts",
+          "database"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Failed to process ARQC message"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Service Information",
+        "description": "Returns service information and available endpoints",
+        "tags": [
+          "Info"
+        ],
+        "responses": {
+          "200": {
+            "description": "Service information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Returns the health status of the service including database and contract connectivity",
+        "tags": [
+          "Health"
+        ],
+        "responses": {
+          "200": {
+            "description": "Health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/arqc": {
+      "post": {
+        "summary": "Process ARQC Message",
+        "description": "Processes an ISO 8583 ARQC (Authorization Request Cryptogram) message and returns an ARPC.\n\n**Wire Format:** Binary ISO 8583 message (not JSON). See `ISO8583ARQCMessage` schema for logical structure.\n\n**Required ISO 8583 Fields:**\n- **DE55**: ICC/EMV Data (TLV encoded) - see `EMVData` schema\n- **DE62**: RSA public key + signature (TLV encoded) - see `DE62RSAData` schema\n\n**Processing Flow:**\n1. Parse ISO 8583 ARQC message\n2. Extract EMV data from DE55\n3. Extract RSA public key and signature from DE62\n4. Look up account in database by public key\n5. Build ERC-4337 UserOperation\n6. Submit transaction to blockchain\n7. Return ISO 8583 ARPC response (see `ISO8583ARPCMessage` schema)",
+        "tags": [
+          "ARQC"
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Raw ISO 8583 ARQC binary message (MTI 0100). See ISO8583ARQCMessage schema for logical structure.",
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ARPC response message (MTI 0110). See ISO8583ARPCMessage schema for logical structure.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing required fields (DE55 or DE62)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account not found for the provided RSA public key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "summary": "Prometheus Metrics",
+        "description": "Returns Prometheus metrics for monitoring",
+        "tags": [
+          "Monitoring"
+        ],
+        "responses": {
+          "200": {
+            "description": "Prometheus metrics in text format",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to generate metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

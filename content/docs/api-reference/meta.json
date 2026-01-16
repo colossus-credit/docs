@@ -1,4 +1,10 @@
 {
   "title": "API Reference",
-  "pages": ["endpoints"]
+  "pages": [
+    "index",
+    "get",
+    "health/get",
+    "arqc/post",
+    "metrics/get"
+  ]
 }
