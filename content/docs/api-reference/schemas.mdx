@@ -1,0 +1,209 @@
+---
+title: Schemas
+description: Data models and type definitions.
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+<Cards>
+<Card href="/api-reference/schemas#arqc" title="ARQC" description="ISO 8583 Authorization Request Cryptogram message. Wire format is binary." />
+<Card href="/api-reference/schemas#arpc" title="ARPC" description="ISO 8583 Authorization Response Cryptogram message. Wire format is binary." />
+<Card href="/api-reference/schemas#rsasignature" title="RSASignature" description="RSA public key (modulus + exponent) and signature from DE62 for EMV validation." />
+<Card href="/api-reference/schemas#emvdata" title="EMVData" description="EMV/ICC data extracted from DE55 TLV-encoded field." />
+<Card href="/api-reference/schemas#serviceinfo" title="ServiceInfo" description="" />
+<Card href="/api-reference/schemas#contractaddresses" title="ContractAddresses" description="" />
+<Card href="/api-reference/schemas#databasehealth" title="DatabaseHealth" description="" />
+<Card href="/api-reference/schemas#healthcheck" title="HealthCheck" description="" />
+<Card href="/api-reference/schemas#contracts" title="Contracts" description="" />
+<Card href="/api-reference/schemas#databasestatus" title="DatabaseStatus" description="" />
+<Card href="/api-reference/schemas#error" title="Error" description="" />
+<Card href="/api-reference/schemas#healthresponse" title="HealthResponse" description="" />
+</Cards>
+
+---
+
+## ARQC
+
+ISO 8583 Authorization Request Cryptogram message. Wire format is binary.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `mti` | `string` | ✓ | Message Type Indicator (0100 = Authorization Request) |
+| `fields` | `object` | ✓ |  |
+| `fields.2` | `string` |  | DE2: Primary Account Number (PAN) |
+| `fields.3` | `string` |  | DE3: Processing Code |
+| `fields.4` | `string` |  | DE4: Amount, Transaction |
+| `fields.11` | `string` |  | DE11: Systems Trace Audit Number |
+| `fields.12` | `string` |  | DE12: Date and Time, Local Transaction |
+| `fields.13` | `string` |  | DE13: Date, Local Transaction |
+| `fields.14` | `string` |  | DE14: Date, Expiration |
+| `fields.18` | `string` |  | DE18: Merchant Type |
+| `fields.22` | `string` |  | DE22: Point of Service Entry Mode |
+| `fields.23` | `string` |  | DE23: Card Sequence Number |
+| `fields.25` | `string` |  | DE25: Point of Service Condition Code |
+| `fields.35` | `string` |  | DE35: Track 2 Data |
+| `fields.37` | `string` |  | DE37: Retrieval Reference Number |
+| `fields.41` | `string` |  | DE41: Card Acceptor Terminal Identification |
+| `fields.42` | `string` |  | DE42: Card Acceptor Identification Code |
+| `fields.43` | `string` |  | DE43: Card Acceptor Name/Location |
+| `fields.49` | `string` |  | DE49: Currency Code, Transaction |
+| `fields.55` | `string` |  | DE55: ICC System Related Data (EMV Data - TLV encoded) |
+| `fields.62` | `string` | ✓ | DE62: Custom Data (RSA public key: modulus + exponent, and RSA signature) |
+
+---
+
+## ARPC
+
+ISO 8583 Authorization Response Cryptogram message. Wire format is binary.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `mti` | `string` | ✓ | Message Type Indicator (0110 = Authorization Response) |
+| `fields` | `object` | ✓ |  |
+| `fields.2` | `string` |  | DE2: Primary Account Number (PAN) |
+| `fields.3` | `string` |  | DE3: Processing Code |
+| `fields.4` | `string` |  | DE4: Transaction Amount |
+| `fields.11` | `string` |  | DE11: Systems Trace Audit Number (STAN) |
+| `fields.12` | `string` |  | DE12: Local Transaction Time (HHMMSS) |
+| `fields.13` | `string` |  | DE13: Local Transaction Date (MMDD) |
+| `fields.37` | `string` |  | DE37: Retrieval Reference Number (RRN) |
+| `fields.38` | `string` |  | DE38: Authorization ID Response |
+| `fields.39` | `string` | ✓ | DE39: Response Code (00=Approved, 05=Declined) |
+| `fields.41` | `string` |  | DE41: Card Acceptor Terminal ID |
+| `fields.42` | `string` |  | DE42: Card Acceptor ID (Merchant ID) |
+| `fields.55` | `string` |  | DE55: ICC/EMV Data (contains ARPC cryptogram) |
+| `fields.62` | `string` |  | DE62: Transaction Result (JSON) |
+
+---
+
+## RSASignature
+
+RSA public key (modulus + exponent) and signature from DE62 for EMV validation.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `modulus` | `string` | ✓ | RSA Modulus (Tag DF01, 256 bytes hex for RSA-2048) |
+| `exponent` | `string` | ✓ | RSA Exponent (Tag DF02, typically 010001) |
+| `signature` | `string` | ✓ | RSA Signature (Tag DF03, 256 bytes hex) |
+
+---
+
+## EMVData
+
+EMV/ICC data extracted from DE55 TLV-encoded field.
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `amount` | `string` | ✓ | Tag 9F02: Authorized Amount (12 digits) |
+| `currency` | `string` | ✓ | Tag 5F2A: Transaction Currency Code |
+| `terminalCountry` | `string` | ✓ | Tag 9F1A: Terminal Country Code |
+| `terminalVerificationResults` | `string` | ✓ | Tag 95: Terminal Verification Results (5 bytes hex) |
+| `transactionDate` | `string` | ✓ | Tag 9A: Transaction Date (YYMMDD) |
+| `transactionType` | `string` | ✓ | Tag 9C: Transaction Type |
+| `unpredictableNumber` | `string` | ✓ | Tag 9F37: Unpredictable Number (4 bytes hex) |
+| `applicationInterchangeProfile` | `string` | ✓ | Tag 82: Application Interchange Profile (2 bytes hex) |
+| `applicationTransactionCounter` | `string` | ✓ | Tag 9F36: Application Transaction Counter (2 bytes hex) |
+| `cryptogram` | `string` | ✓ | Tag 9F26: Application Cryptogram (ARQC) |
+| `cryptogramInformationData` | `string` | ✓ | Tag 9F27: Cryptogram Information Data |
+| `issuerApplicationData` | `string` |  | Tag 9F10: Issuer Application Data |
+| `terminalCapabilities` | `string` |  | Tag 9F33: Terminal Capabilities (3 bytes hex) |
+| `cvmResults` | `string` |  | Tag 9F34: CVM Results (3 bytes hex) |
+
+---
+
+## ServiceInfo
+
+
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `service` | `string` | ✓ |  |
+| `version` | `string` | ✓ |  |
+| `endpoints` | `object` | ✓ |  |
+| `endpoints.health` | `string` | ✓ |  |
+| `endpoints.arqc` | `string` | ✓ |  |
+| `endpoints.metrics` | `string` | ✓ |  |
+| `endpoints.docs` | `string` | ✓ |  |
+
+---
+
+## ContractAddresses
+
+
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `emvValidator` | `string` | ✓ |  |
+| `emvSettlement` | `string` | ✓ |  |
+
+---
+
+## DatabaseHealth
+
+
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `healthy` | `boolean` | ✓ |  |
+
+---
+
+## HealthCheck
+
+
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `status` | `string` | ✓ | Overall service health status |
+| `service` | `string` | ✓ |  |
+| `timestamp` | `string` | ✓ |  |
+| `sponsor` | `string` | ✓ |  |
+| `contracts` | `ContractAddresses` | ✓ |  |
+| `database` | `DatabaseHealth` | ✓ |  |
+
+---
+
+## Contracts
+
+
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `emvValidator` | `string` | ✓ |  |
+| `emvSettlement` | `string` | ✓ |  |
+
+---
+
+## DatabaseStatus
+
+
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `healthy` | `boolean` | ✓ |  |
+
+---
+
+## Error
+
+
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `error` | `string` | ✓ |  |
+| `message` | `string` |  |  |
+
+---
+
+## HealthResponse
+
+
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `status` | `string` | ✓ | Overall service health status |
+| `service` | `string` | ✓ |  |
+| `timestamp` | `string` | ✓ |  |
+| `sponsor` | `string` | ✓ |  |
+| `contracts` | `ContractAddresses` | ✓ |  |
+| `database` | `DatabaseHealth` | ✓ |  |

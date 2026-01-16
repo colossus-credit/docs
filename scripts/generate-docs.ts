@@ -1,14 +1,59 @@
 import { generateFiles } from 'fumadocs-openapi';
 import { openapi } from '../src/lib/openapi';
-import { copyFile } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
+import { parse as parseYaml } from 'yaml';
 
-const SPEC_SOURCE = '/Users/prudhvirampey/Documents/colossus-stack/services/iso8583-bundler/openapi.json';
-const SPEC_DEST = './openapi.json';
+const SPEC_SOURCE = './openapi/openapi.yaml';
+const SPEC_DEST = './openapi/openapi.json';
 const output = './content/docs/api-reference';
 
-// Step 1: Copy latest spec from iso8583-bundler service
-await copyFile(SPEC_SOURCE, SPEC_DEST);
-console.log(`Copied spec from ${SPEC_SOURCE}`);
+// Step 1: Read spec from local source and convert YAML to JSON
+console.log(`Reading spec from ${SPEC_SOURCE}...`);
+const yamlContent = await readFile(SPEC_SOURCE, 'utf-8');
+const spec = parseYaml(yamlContent);
+
+// Save as JSON (commit this to the repo)
+await writeFile(SPEC_DEST, JSON.stringify(spec, null, 2));
+console.log(`Saved spec to ${SPEC_DEST}`);
+
+const schemas = spec.components?.schemas || {};
+const schemaNames = Object.keys(schemas);
+
+// Helper to convert schema references to links
+function linkifySchemas(content: string): string {
+  let result = content;
+  for (const name of schemaNames) {
+    // Replace `SchemaName` with link (but not inside existing links or code blocks)
+    const pattern = new RegExp(`\`${name}\`(?! schema)`, 'g');
+    result = result.replace(pattern, `[\`${name}\`](/api-reference/schemas#${name.toLowerCase()})`);
+    // Also handle "SchemaName schema" pattern
+    const patternWithSchema = new RegExp(`\`${name}\` schema`, 'g');
+    result = result.replace(patternWithSchema, `[\`${name}\`](/api-reference/schemas#${name.toLowerCase()}) schema`);
+  }
+  return result;
+}
+
+// Helper to recursively generate property table rows for nested objects
+function generatePropsTable(props: Record<string, any>, required: string[], prefix = ''): string[] {
+  const rows: string[] = [];
+
+  for (const [propName, propDef] of Object.entries(props)) {
+    const fullName = prefix ? `${prefix}.${propName}` : propName;
+    const type = propDef.type || propDef.$ref?.split('/').pop() || 'any';
+    const isRequired = required.includes(propName) ? '✓' : '';
+    const desc = (propDef.description || '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+
+    rows.push(`| \`${fullName}\` | \`${type}\` | ${isRequired} | ${desc} |`);
+
+    // Recursively handle nested objects
+    if (propDef.type === 'object' && propDef.properties) {
+      const nestedRequired = propDef.required || [];
+      rows.push(...generatePropsTable(propDef.properties, nestedRequired, fullName));
+    }
+  }
+
+  return rows;
+}
 
 // Step 2: Generate individual endpoint pages + meta.json + index with cards
 await generateFiles({
@@ -17,6 +62,11 @@ await generateFiles({
   per: 'operation',
   includeDescription: true,
   async beforeWrite(files) {
+    // Linkify schema references in all generated files
+    for (const file of files) {
+      file.content = linkifySchemas(file.content);
+    }
+
     // Get all operation entries
     const entries = Object.values(this.generatedEntries).flat();
     const operations = entries.filter((e: any) => e.type === 'operation');
@@ -47,7 +97,7 @@ await generateFiles({
       path: 'meta.json',
       content: JSON.stringify({
         title: 'API Reference',
-        pages: ['index', ...pages]
+        pages: ['index', 'schemas', ...pages]
       }, null, 2)
     });
 
@@ -55,7 +105,7 @@ await generateFiles({
     files.push({
       path: 'index.mdx',
       content: `---
-title: Schema
+title: Endpoints
 description: Overview of all available API endpoints.
 ---
 
@@ -64,6 +114,54 @@ import { Cards, Card } from 'fumadocs-ui/components/card';
 <Cards>
 ${cards.join('\n')}
 </Cards>
+`
+    });
+
+    // Generate schemas page
+    const schemaCards: string[] = [];
+    for (const [name, schema] of Object.entries(schemas)) {
+      const desc = (schema as any).description?.split('\n')[0] || '';
+      schemaCards.push(`<Card href="/api-reference/schemas#${name.toLowerCase()}" title="${name}" description="${desc.replace(/"/g, "'")}" />`);
+    }
+
+    const schemaDetails: string[] = [];
+    for (const [name, schema] of Object.entries(schemas)) {
+      const s = schema as any;
+      const desc = s.description || '';
+      const props = s.properties || {};
+      const required = s.required || [];
+
+      let propsTable = '';
+      if (Object.keys(props).length > 0) {
+        const tableRows = generatePropsTable(props, required);
+        propsTable = `| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+${tableRows.join('\n')}`;
+      }
+
+      schemaDetails.push(`## ${name}
+
+${desc}
+
+${propsTable}`);
+    }
+
+    files.push({
+      path: 'schemas.mdx',
+      content: `---
+title: Schemas
+description: Data models and type definitions.
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+<Cards>
+${schemaCards.join('\n')}
+</Cards>
+
+---
+
+${schemaDetails.join('\n\n---\n\n')}
 `
     });
   }

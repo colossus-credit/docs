@@ -31,72 +31,92 @@
   ],
   "components": {
     "schemas": {
-      "ISO8583ARQCMessage": {
+      "ARQC": {
         "type": "object",
         "properties": {
           "mti": {
             "type": "string",
-            "pattern": "^0100$"
+            "pattern": "^0100$",
+            "description": "Message Type Indicator (0100 = Authorization Request)"
           },
           "fields": {
             "type": "object",
             "properties": {
               "2": {
-                "type": "string"
+                "type": "string",
+                "description": "DE2: Primary Account Number (PAN)"
               },
               "3": {
-                "type": "string"
+                "type": "string",
+                "description": "DE3: Processing Code"
               },
               "4": {
-                "type": "string"
+                "type": "string",
+                "description": "DE4: Amount, Transaction"
               },
               "11": {
-                "type": "string"
+                "type": "string",
+                "description": "DE11: Systems Trace Audit Number"
               },
               "12": {
-                "type": "string"
+                "type": "string",
+                "description": "DE12: Date and Time, Local Transaction"
               },
               "13": {
-                "type": "string"
+                "type": "string",
+                "description": "DE13: Date, Local Transaction"
               },
               "14": {
-                "type": "string"
+                "type": "string",
+                "description": "DE14: Date, Expiration"
               },
               "18": {
-                "type": "string"
+                "type": "string",
+                "description": "DE18: Merchant Type"
               },
               "22": {
-                "type": "string"
+                "type": "string",
+                "description": "DE22: Point of Service Entry Mode"
               },
               "23": {
-                "type": "string"
+                "type": "string",
+                "description": "DE23: Card Sequence Number"
               },
               "25": {
-                "type": "string"
+                "type": "string",
+                "description": "DE25: Point of Service Condition Code"
               },
               "35": {
-                "type": "string"
+                "type": "string",
+                "description": "DE35: Track 2 Data"
               },
               "37": {
-                "type": "string"
+                "type": "string",
+                "description": "DE37: Retrieval Reference Number"
               },
               "41": {
-                "type": "string"
+                "type": "string",
+                "description": "DE41: Card Acceptor Terminal Identification"
               },
               "42": {
-                "type": "string"
+                "type": "string",
+                "description": "DE42: Card Acceptor Identification Code"
               },
               "43": {
-                "type": "string"
+                "type": "string",
+                "description": "DE43: Card Acceptor Name/Location"
               },
               "49": {
-                "type": "string"
+                "type": "string",
+                "description": "DE49: Currency Code, Transaction"
               },
               "55": {
-                "type": "string"
+                "type": "string",
+                "description": "DE55: ICC System Related Data (EMV Data - TLV encoded)"
               },
               "62": {
-                "type": "string"
+                "type": "string",
+                "description": "DE62: Custom Data (RSA public key: modulus + exponent, and RSA signature)"
               }
             },
             "required": [
@@ -108,56 +128,70 @@
           "mti",
           "fields"
         ],
-        "description": "ISO 8583 Authorization Request Cryptogram (ARQC) message. Wire format is binary."
+        "description": "ISO 8583 Authorization Request Cryptogram message. Wire format is binary."
       },
-      "ISO8583ARPCMessage": {
+      "ARPC": {
         "type": "object",
         "properties": {
           "mti": {
             "type": "string",
-            "pattern": "^0110$"
+            "pattern": "^0110$",
+            "description": "Message Type Indicator (0110 = Authorization Response)"
           },
           "fields": {
             "type": "object",
             "properties": {
               "2": {
-                "type": "string"
+                "type": "string",
+                "description": "DE2: Primary Account Number (PAN)"
               },
               "3": {
-                "type": "string"
+                "type": "string",
+                "description": "DE3: Processing Code"
               },
               "4": {
-                "type": "string"
+                "type": "string",
+                "description": "DE4: Transaction Amount"
               },
               "11": {
-                "type": "string"
+                "type": "string",
+                "description": "DE11: Systems Trace Audit Number (STAN)"
               },
               "12": {
-                "type": "string"
+                "type": "string",
+                "description": "DE12: Local Transaction Time (HHMMSS)"
               },
               "13": {
-                "type": "string"
+                "type": "string",
+                "description": "DE13: Local Transaction Date (MMDD)"
               },
               "37": {
-                "type": "string"
+                "type": "string",
+                "description": "DE37: Retrieval Reference Number (RRN)"
               },
               "38": {
-                "type": "string"
+                "type": "string",
+                "description": "DE38: Authorization ID Response"
               },
               "39": {
-                "type": "string"
+                "type": "string",
+                "description": "DE39: Response Code (00=Approved, 05=Declined)"
               },
               "41": {
-                "type": "string"
+                "type": "string",
+                "description": "DE41: Card Acceptor Terminal ID"
               },
               "42": {
-                "type": "string"
+                "type": "string",
+                "description": "DE42: Card Acceptor ID (Merchant ID)"
               },
               "55": {
-                "type": "string"
+                "type": "string",
+                "description": "DE55: ICC/EMV Data (contains ARPC cryptogram)"
               },
               "62": {
-                "type": "string"
+                "type": "string",
+                "description": "DE62: Transaction Result (JSON)"
               }
             },
             "required": [
@@ -169,19 +203,22 @@
           "mti",
           "fields"
         ],
-        "description": "ISO 8583 Authorization Response Cryptogram (ARPC) message. Wire format is binary."
+        "description": "ISO 8583 Authorization Response Cryptogram message. Wire format is binary."
       },
-      "DE62RSAData": {
+      "RSASignature": {
         "type": "object",
         "properties": {
           "modulus": {
-            "type": "string"
+            "type": "string",
+            "description": "RSA Modulus (Tag DF01, 256 bytes hex for RSA-2048)"
           },
           "exponent": {
-            "type": "string"
+            "type": "string",
+            "description": "RSA Exponent (Tag DF02, typically 010001)"
           },
           "signature": {
-            "type": "string"
+            "type": "string",
+            "description": "RSA Signature (Tag DF03, 256 bytes hex)"
           }
         },
         "required": [
@@ -189,52 +226,66 @@
           "exponent",
           "signature"
         ],
-        "description": "DE62 RSA data: public key (modulus + exponent) and signature for EMV validation."
+        "description": "RSA public key (modulus + exponent) and signature from DE62 for EMV validation."
       },
-      "DE62EMVData": {
+      "EMVData": {
         "type": "object",
         "properties": {
           "amount": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag 9F02: Authorized Amount (12 digits)"
           },
           "currency": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag 5F2A: Transaction Currency Code"
           },
           "terminalCountry": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag 9F1A: Terminal Country Code"
           },
           "terminalVerificationResults": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag 95: Terminal Verification Results (5 bytes hex)"
           },
           "transactionDate": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag 9A: Transaction Date (YYMMDD)"
           },
           "transactionType": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag 9C: Transaction Type"
           },
           "unpredictableNumber": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag 9F37: Unpredictable Number (4 bytes hex)"
           },
           "applicationInterchangeProfile": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag 82: Application Interchange Profile (2 bytes hex)"
           },
           "applicationTransactionCounter": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag 9F36: Application Transaction Counter (2 bytes hex)"
           },
           "cryptogram": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag 9F26: Application Cryptogram (ARQC)"
           },
           "cryptogramInformationData": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag 9F27: Cryptogram Information Data"
           },
           "issuerApplicationData": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag 9F10: Issuer Application Data"
           },
           "terminalCapabilities": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag 9F33: Terminal Capabilities (3 bytes hex)"
           },
           "cvmResults": {
-            "type": "string"
+            "type": "string",
+            "description": "Tag 9F34: CVM Results (3 bytes hex)"
           }
         },
         "required": [
@@ -250,7 +301,7 @@
           "cryptogram",
           "cryptogramInformationData"
         ],
-        "description": "DE55 EMV/ICC data extracted from TLV-encoded field."
+        "description": "EMV/ICC data extracted from DE55 TLV-encoded field."
       },
       "ServiceInfo": {
         "type": "object",
@@ -325,7 +376,7 @@
           "healthy"
         ]
       },
-      "HealthResponse": {
+      "HealthCheck": {
         "type": "object",
         "properties": {
           "status": {
@@ -364,6 +415,34 @@
           "database"
         ]
       },
+      "Contracts": {
+        "type": "object",
+        "properties": {
+          "emvValidator": {
+            "type": "string",
+            "example": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+          },
+          "emvSettlement": {
+            "type": "string",
+            "example": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+          }
+        },
+        "required": [
+          "emvValidator",
+          "emvSettlement"
+        ]
+      },
+      "DatabaseStatus": {
+        "type": "object",
+        "properties": {
+          "healthy": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "healthy"
+        ]
+      },
       "Error": {
         "type": "object",
         "properties": {
@@ -377,6 +456,45 @@
         },
         "required": [
           "error"
+        ]
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "description": "Overall service health status"
+          },
+          "service": {
+            "type": "string",
+            "example": "iso8583-bundler"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sponsor": {
+            "type": "string",
+            "example": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+          },
+          "contracts": {
+            "$ref": "#/components/schemas/ContractAddresses"
+          },
+          "database": {
+            "$ref": "#/components/schemas/DatabaseHealth"
+          }
+        },
+        "required": [
+          "status",
+          "service",
+          "timestamp",
+          "sponsor",
+          "contracts",
+          "database"
         ]
       }
     },
@@ -428,13 +546,13 @@
     "/arqc": {
       "post": {
         "summary": "Process ARQC Message",
-        "description": "Processes an ISO 8583 ARQC (Authorization Request Cryptogram) message and returns an ARPC.\n\n**Wire Format:** Binary ISO 8583 message (not JSON). See `ISO8583ARQCMessage` schema for logical structure.\n\n**Required ISO 8583 Fields:**\n- **DE55**: ICC/EMV Data (TLV encoded) - see `EMVData` schema\n- **DE62**: RSA public key + signature (TLV encoded) - see `DE62RSAData` schema\n\n**Processing Flow:**\n1. Parse ISO 8583 ARQC message\n2. Extract EMV data from DE55\n3. Extract RSA public key and signature from DE62\n4. Look up account in database by public key\n5. Build ERC-4337 UserOperation\n6. Submit transaction to blockchain\n7. Return ISO 8583 ARPC response (see `ISO8583ARPCMessage` schema)",
+        "description": "Processes an ISO 8583 ARQC (Authorization Request Cryptogram) message and returns an ARPC.\n\n**Wire Format:** Binary ISO 8583 message (not JSON). See `ARQC` schema for logical structure.\n\n**Required ISO 8583 Fields:**\n- **DE55**: ICC/EMV Data (TLV encoded) - see `EMVData` schema\n- **DE62**: RSA public key + signature (TLV encoded) - see `RSASignature` schema\n\n**Processing Flow:**\n1. Parse ISO 8583 ARQC message\n2. Extract EMV data from DE55\n3. Extract RSA public key and signature from DE62\n4. Look up account in database by public key\n5. Build ERC-4337 UserOperation\n6. Submit transaction to blockchain\n7. Return ISO 8583 ARPC response (see `ARPC` schema)",
         "tags": [
           "ARQC"
         ],
         "requestBody": {
           "required": true,
-          "description": "Raw ISO 8583 ARQC binary message (MTI 0100). See ISO8583ARQCMessage schema for logical structure.",
+          "description": "Raw ISO 8583 ARQC binary message (MTI 0100). See ARQC schema for logical structure.",
           "content": {
             "application/octet-stream": {
               "schema": {
@@ -446,7 +564,7 @@
         },
         "responses": {
           "200": {
-            "description": "ARPC response message (MTI 0110). See ISO8583ARPCMessage schema for logical structure.",
+            "description": "ARPC response message (MTI 0110). See ARPC schema for logical structure.",
             "content": {
               "application/octet-stream": {
                 "schema": {

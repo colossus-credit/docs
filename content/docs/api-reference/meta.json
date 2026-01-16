@@ -2,6 +2,7 @@
   "title": "API Reference",
   "pages": [
     "index",
+    "schemas",
     "get",
     "health/get",
     "arqc/post",
