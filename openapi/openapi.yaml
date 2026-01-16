@@ -1,0 +1,484 @@
+openapi: 3.0.3
+info:
+  title: ISO 8583 ARQC to ERC-4337 Bundler API
+  version: 1.0.0
+  description: A middleware service that processes ISO 8583 ARQC messages and
+    submits EMV transactions to the blockchain via ERC-4337 UserOperations.
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+tags:
+  - name: Info
+    description: Service information endpoints
+  - name: Health
+    description: Health check and status endpoints
+  - name: ARQC
+    description: ISO 8583 ARQC processing endpoints
+  - name: Monitoring
+    description: Prometheus metrics and monitoring endpoints
+components:
+  schemas:
+    ARQC:
+      type: object
+      properties:
+        mti:
+          type: string
+          pattern: ^0100$
+          description: Message Type Indicator (0100 = Authorization Request)
+        fields:
+          type: object
+          properties:
+            "2":
+              type: string
+              description: "DE2: Primary Account Number (PAN)"
+            "3":
+              type: string
+              description: "DE3: Processing Code"
+            "4":
+              type: string
+              description: "DE4: Amount, Transaction"
+            "11":
+              type: string
+              description: "DE11: Systems Trace Audit Number"
+            "12":
+              type: string
+              description: "DE12: Date and Time, Local Transaction"
+            "13":
+              type: string
+              description: "DE13: Date, Local Transaction"
+            "14":
+              type: string
+              description: "DE14: Date, Expiration"
+            "18":
+              type: string
+              description: "DE18: Merchant Type"
+            "22":
+              type: string
+              description: "DE22: Point of Service Entry Mode"
+            "23":
+              type: string
+              description: "DE23: Card Sequence Number"
+            "25":
+              type: string
+              description: "DE25: Point of Service Condition Code"
+            "35":
+              type: string
+              description: "DE35: Track 2 Data"
+            "37":
+              type: string
+              description: "DE37: Retrieval Reference Number"
+            "41":
+              type: string
+              description: "DE41: Card Acceptor Terminal Identification"
+            "42":
+              type: string
+              description: "DE42: Card Acceptor Identification Code"
+            "43":
+              type: string
+              description: "DE43: Card Acceptor Name/Location"
+            "49":
+              type: string
+              description: "DE49: Currency Code, Transaction"
+            "55":
+              type: string
+              description: "DE55: ICC System Related Data (EMV Data - TLV encoded)"
+            "62":
+              type: string
+              description: "DE62: Custom Data (RSA public key: modulus + exponent, and RSA
+                signature)"
+          required:
+            - "62"
+      required:
+        - mti
+        - fields
+      description: ISO 8583 Authorization Request Cryptogram message. Wire format is binary.
+    ARPC:
+      type: object
+      properties:
+        mti:
+          type: string
+          pattern: ^0110$
+          description: Message Type Indicator (0110 = Authorization Response)
+        fields:
+          type: object
+          properties:
+            "2":
+              type: string
+              description: "DE2: Primary Account Number (PAN)"
+            "3":
+              type: string
+              description: "DE3: Processing Code"
+            "4":
+              type: string
+              description: "DE4: Transaction Amount"
+            "11":
+              type: string
+              description: "DE11: Systems Trace Audit Number (STAN)"
+            "12":
+              type: string
+              description: "DE12: Local Transaction Time (HHMMSS)"
+            "13":
+              type: string
+              description: "DE13: Local Transaction Date (MMDD)"
+            "37":
+              type: string
+              description: "DE37: Retrieval Reference Number (RRN)"
+            "38":
+              type: string
+              description: "DE38: Authorization ID Response"
+            "39":
+              type: string
+              description: "DE39: Response Code (00=Approved, 05=Declined)"
+            "41":
+              type: string
+              description: "DE41: Card Acceptor Terminal ID"
+            "42":
+              type: string
+              description: "DE42: Card Acceptor ID (Merchant ID)"
+            "55":
+              type: string
+              description: "DE55: ICC/EMV Data (contains ARPC cryptogram)"
+            "62":
+              type: string
+              description: "DE62: Transaction Result (JSON)"
+          required:
+            - "39"
+      required:
+        - mti
+        - fields
+      description: ISO 8583 Authorization Response Cryptogram message. Wire format is
+        binary.
+    RSASignature:
+      type: object
+      properties:
+        modulus:
+          type: string
+          description: RSA Modulus (Tag DF01, 256 bytes hex for RSA-2048)
+        exponent:
+          type: string
+          description: RSA Exponent (Tag DF02, typically 010001)
+        signature:
+          type: string
+          description: RSA Signature (Tag DF03, 256 bytes hex)
+      required:
+        - modulus
+        - exponent
+        - signature
+      description: RSA public key (modulus + exponent) and signature from DE62 for EMV
+        validation.
+    EMVData:
+      type: object
+      properties:
+        amount:
+          type: string
+          description: "Tag 9F02: Authorized Amount (12 digits)"
+        currency:
+          type: string
+          description: "Tag 5F2A: Transaction Currency Code"
+        terminalCountry:
+          type: string
+          description: "Tag 9F1A: Terminal Country Code"
+        terminalVerificationResults:
+          type: string
+          description: "Tag 95: Terminal Verification Results (5 bytes hex)"
+        transactionDate:
+          type: string
+          description: "Tag 9A: Transaction Date (YYMMDD)"
+        transactionType:
+          type: string
+          description: "Tag 9C: Transaction Type"
+        unpredictableNumber:
+          type: string
+          description: "Tag 9F37: Unpredictable Number (4 bytes hex)"
+        applicationInterchangeProfile:
+          type: string
+          description: "Tag 82: Application Interchange Profile (2 bytes hex)"
+        applicationTransactionCounter:
+          type: string
+          description: "Tag 9F36: Application Transaction Counter (2 bytes hex)"
+        cryptogram:
+          type: string
+          description: "Tag 9F26: Application Cryptogram (ARQC)"
+        cryptogramInformationData:
+          type: string
+          description: "Tag 9F27: Cryptogram Information Data"
+        issuerApplicationData:
+          type: string
+          description: "Tag 9F10: Issuer Application Data"
+        terminalCapabilities:
+          type: string
+          description: "Tag 9F33: Terminal Capabilities (3 bytes hex)"
+        cvmResults:
+          type: string
+          description: "Tag 9F34: CVM Results (3 bytes hex)"
+      required:
+        - amount
+        - currency
+        - terminalCountry
+        - terminalVerificationResults
+        - transactionDate
+        - transactionType
+        - unpredictableNumber
+        - applicationInterchangeProfile
+        - applicationTransactionCounter
+        - cryptogram
+        - cryptogramInformationData
+      description: EMV/ICC data extracted from DE55 TLV-encoded field.
+    ServiceInfo:
+      type: object
+      properties:
+        service:
+          type: string
+          example: ISO 8583 ARQC to ERC-4337 Bundler
+        version:
+          type: string
+          example: 1.0.0
+        endpoints:
+          type: object
+          properties:
+            health:
+              type: string
+              example: GET /health
+            arqc:
+              type: string
+              example: POST /arqc (application/octet-stream)
+            metrics:
+              type: string
+              example: GET /metrics
+            docs:
+              type: string
+              example: GET /docs
+          required:
+            - health
+            - arqc
+            - metrics
+            - docs
+      required:
+        - service
+        - version
+        - endpoints
+    ContractAddresses:
+      type: object
+      properties:
+        emvValidator:
+          type: string
+          example: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+        emvSettlement:
+          type: string
+          example: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+      required:
+        - emvValidator
+        - emvSettlement
+    DatabaseHealth:
+      type: object
+      properties:
+        healthy:
+          type: boolean
+      required:
+        - healthy
+    HealthCheck:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: &a1
+            - ok
+            - degraded
+          description: Overall service health status
+        service:
+          type: string
+          example: iso8583-bundler
+        timestamp:
+          type: string
+          format: date-time
+        sponsor:
+          type: string
+          example: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+        contracts:
+          $ref: "#/components/schemas/ContractAddresses"
+        database:
+          $ref: "#/components/schemas/DatabaseHealth"
+      required:
+        - status
+        - service
+        - timestamp
+        - sponsor
+        - contracts
+        - database
+    Contracts:
+      type: object
+      properties:
+        emvValidator:
+          type: string
+          example: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+        emvSettlement:
+          type: string
+          example: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+      required:
+        - emvValidator
+        - emvSettlement
+    DatabaseStatus:
+      type: object
+      properties:
+        healthy:
+          type: boolean
+      required:
+        - healthy
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Failed to process ARQC message
+        message:
+          type: string
+      required:
+        - error
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: *a1
+          description: Overall service health status
+        service:
+          type: string
+          example: iso8583-bundler
+        timestamp:
+          type: string
+          format: date-time
+        sponsor:
+          type: string
+          example: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+        contracts:
+          $ref: "#/components/schemas/ContractAddresses"
+        database:
+          $ref: "#/components/schemas/DatabaseHealth"
+      required:
+        - status
+        - service
+        - timestamp
+        - sponsor
+        - contracts
+        - database
+  parameters: {}
+paths:
+  /:
+    get:
+      summary: Service Information
+      description: Returns service information and available endpoints
+      tags:
+        - Info
+      responses:
+        "200":
+          description: Service information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceInfo"
+  /health:
+    get:
+      summary: Health Check
+      description: Returns the health status of the service including database and
+        contract connectivity
+      tags:
+        - Health
+      responses:
+        "200":
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /arqc:
+    post:
+      summary: Process ARQC Message
+      description: >-
+        Processes an ISO 8583 ARQC (Authorization Request Cryptogram) message
+        and returns an ARPC.
+
+
+        **Wire Format:** Binary ISO 8583 message (not JSON). See `ARQC` schema
+        for logical structure.
+
+
+        **Required ISO 8583 Fields:**
+
+        - **DE55**: ICC/EMV Data (TLV encoded) - see `EMVData` schema
+
+        - **DE62**: RSA public key + signature (TLV encoded) - see
+        `RSASignature` schema
+
+
+        **Processing Flow:**
+
+        1. Parse ISO 8583 ARQC message
+
+        2. Extract EMV data from DE55
+
+        3. Extract RSA public key and signature from DE62
+
+        4. Look up account in database by public key
+
+        5. Build ERC-4337 UserOperation
+
+        6. Submit transaction to blockchain
+
+        7. Return ISO 8583 ARPC response (see `ARPC` schema)
+      tags:
+        - ARQC
+      requestBody:
+        required: true
+        description: Raw ISO 8583 ARQC binary message (MTI 0100). See ARQC schema for
+          logical structure.
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: ARPC response message (MTI 0110). See ARPC schema for logical
+            structure.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Bad request - missing required fields (DE55 or DE62)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Account not found for the provided RSA public key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /metrics:
+    get:
+      summary: Prometheus Metrics
+      description: Returns Prometheus metrics for monitoring
+      tags:
+        - Monitoring
+      responses:
+        "200":
+          description: Prometheus metrics in text format
+          content:
+            text/plain:
+              schema:
+                type: string
+        "500":
+          description: Failed to generate metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"

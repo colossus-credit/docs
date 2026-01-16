@@ -1,0 +1,13 @@
+---
+title: Endpoints
+description: Overview of all available API endpoints.
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+<Cards>
+<Card href="/api-reference/get" title={<><span className="font-mono font-medium text-green-600 dark:text-green-400">GET</span> Service Information</>} description="Returns service information and available endpoints" />
+<Card href="/api-reference/health/get" title={<><span className="font-mono font-medium text-green-600 dark:text-green-400">GET</span> Health Check</>} description="Returns the health status of the service including database and contract connectivity" />
+<Card href="/api-reference/arqc/post" title={<><span className="font-mono font-medium text-blue-600 dark:text-blue-400">POST</span> Process ARQC Message</>} description="Processes an ISO 8583 ARQC (Authorization Request Cryptogram) message and returns an ARPC." />
+<Card href="/api-reference/metrics/get" title={<><span className="font-mono font-medium text-green-600 dark:text-green-400">GET</span> Prometheus Metrics</>} description="Returns Prometheus metrics for monitoring" />
+</Cards>
