@@ -1,10 +1,9 @@
 {
   "pages": [
-    "introduction",
-    "card",
+    "overview",
     "technical",
-    "incentives",
-    "user-guides",
+    "guides",
+    "faq",
     "api-reference"
   ]
 }

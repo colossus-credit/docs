@@ -1,4 +1,14 @@
 {
   "title": "Technical",
-  "pages": ["stack-design", "transaction-flow", "host-message-bundling", "deployment"]
+  "pages": [
+    "architecture",
+    "card",
+    "transaction-flow",
+    "smart-contracts",
+    "settlement",
+    "cross-chain",
+    "middleware",
+    "security",
+    "deployment"
+  ]
 }

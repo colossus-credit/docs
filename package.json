@@ -11,11 +11,12 @@
     "generate:api": "bun scripts/generate-docs.ts"
   },
   "dependencies": {
-    "fumadocs-core": "16.4.6",
-    "fumadocs-mdx": "14.2.4",
-    "fumadocs-openapi": "^10.2.4",
-    "fumadocs-ui": "16.4.6",
+    "fumadocs-core": "^16.6.5",
+    "fumadocs-mdx": "^14.2.8",
+    "fumadocs-openapi": "^10.3.11",
+    "fumadocs-ui": "^16.6.5",
     "lucide-react": "^0.562.0",
+    "mermaid": "^11.12.3",
     "next": "16.1.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",

@@ -1,0 +1,171 @@
+---
+title: Card Architecture
+description: ColossusNet JavaCard applets, EMV interfaces, dual issuance, cryptographic design, and card registration.
+---
+
+# Card Architecture
+
+Each ColossusNet card is an EMV-compliant smart card running JavaCard 3.0.5+. It contains JavaCard applets that handle payment directory selection, contact transactions, contactless transactions, and card registration.
+
+## Applet summary
+
+| Applet | AID | Interface | Kernel | Priority | Purpose |
+|--------|-----|-----------|--------|----------|---------|
+| PSE | `315041592E5359532E4444463031` | Contact | N/A | N/A | Payment System Environment (1PAY.SYS.DDF01) |
+| PPSE | `325041592E5359532E4444463031` | Contactless | N/A | N/A | Proximity PSE (2PAY.SYS.DDF01) |
+| RIX 0001 | `A0000009510001` | Contact | Default EMV | PSE Priority 1 | Contact payment (DDA + ECDSA) |
+| RIX 1010 | `A0000009511010` | Contactless | C-3 (Visa) | PPSE Priority 1 | Contactless payment (DDA + ECDSA, full EMV mode) |
+| RIX 1020 | `A0000009511020` | Contactless | C-8 (EMV Generic) | PPSE Priority 2 | Contactless payment (native ECC, enhanced security) |
+| RIX 1030 | `A0000009511030` | Contactless | N/A | N/A | Card registration (public key export) |
+
+All payment applets share the ColossusNet Registered Application Provider Identifier (RID): `A000000951`.
+
+## Contact vs. contactless
+
+ColossusNet supports both physical interfaces defined by the EMV specification:
+
+- **Contact (chip insert)**: The PSE directory (`1PAY.SYS.DDF01`) lists RIX 0001 as the sole contact payment applet. When a terminal reads the chip, it selects the PSE, discovers RIX 0001 at priority 1, and proceeds with a standard EMV contact transaction flow.
+
+- **Contactless (tap)**: The PPSE directory (`2PAY.SYS.DDF01`) lists two contactless payment applets: RIX 1010 at priority 1 and RIX 1020 at priority 2. The terminal selects the highest-priority applet whose kernel it supports.
+
+## Dual contactless applets
+
+ColossusNet offers two contactless payment applets to maximize terminal compatibility today while providing a path to stronger security in the future.
+
+| Aspect | RIX 1010 (C-3) | RIX 1020 (C-8) |
+|--------|-----------------|-----------------|
+| Terminal availability | Ubiquitous (>99% of terminals) | Limited (~5% today, growing) |
+| ODA method | RSA-based DDA (fails intentionally) | Native ECC (P-256 natively supported) |
+| Security model | ECDSA embedded in SDAD | ECDSA as first-class citizen |
+| Privacy | PAN in cleartext | PAN encrypted (AES-CTR secure channel) |
+| Relay Resistance Protocol | Not supported | Supported (relay attack protection) |
+
+**RIX 1010 (Kernel C-3, Visa)** is set as PPSE priority 1. Most deployed terminals carry Kernel C-3, so RIX 1010 ensures ColossusNet works at virtually every contactless terminal today.
+
+**RIX 1020 (Kernel C-8, EMV Generic)** is set as PPSE priority 2. Kernel C-8 is payment-scheme agnostic and provides native ECC certificate support, AES-CTR encrypted card data, relay resistance protocol (RRP), and enhanced data authentication (EDA) using AES-CMAC. As terminals adopt C-8 (expected industry-wide within 12-18 months), the enhanced security becomes available without requiring card reissuance.
+
+## Dual issuance
+
+ColossusNet cards use **dual issuance**: the Colossus JavaCard applets are loaded alongside an existing Visa or Mastercard applet on the same physical card. Card manufacturers (Rain, Lithic, Bridge) produce cards that carry both a traditional payment applet and the ColossusNet applets.
+
+This is enabled by the [Durbin Amendment](https://en.wikipedia.org/wiki/Durbin_amendment), which mandates that every US debit card support at least two unaffiliated payment networks. Because card manufacturers already support multi-applet cards to comply with this regulation, Visa and Mastercard cannot contractually prevent a second network from being loaded.
+
+---
+
+## Cryptographic design
+
+### ECDSA P-256 key pair
+
+Each card generates an ECDSA P-256 (secp256r1) key pair within its JavaCard secure element during personalization. The private key **never leaves the chip**.
+
+| Property | Value |
+|----------|-------|
+| Curve | secp256r1 / NIST P-256 |
+| Signature algorithm | `Signature.ALG_ECDSA_SHA_256` (JavaCard API) |
+| Output format | DER-encoded ASN.1 (`SEQUENCE { INTEGER r, INTEGER s }`), typically 70-72 bytes |
+| Public key format | 65 bytes uncompressed (`04 \|\| X \|\| Y`) |
+
+The card uses this key pair to sign transaction data (the DDOL fields, hashed with SHA-256) and produce the SDAD (tag `9F4B`). The corresponding public key is registered on-chain during card setup, binding the card to the cardholder's ERC-4337 account.
+
+### Why P-256 instead of RSA?
+
+EMV cards communicate via APDU (Application Protocol Data Unit) commands, which have a **256-byte width limit**. An RSA-2048 signature is 256 bytes on its own, consuming the entire APDU payload with no room for transaction data. The maximum RSA key size that fits within APDU constraints alongside transaction data is RSA-1984, which is approximately **64% weaker** than the NIST minimum of RSA-2048.
+
+ECDSA P-256 signatures are only 70-72 bytes, leaving ample room for transaction context within the APDU. P-256 provides 128-bit security (equivalent to RSA-3072), making it both more compact and stronger than any RSA key that fits within EMV's constraints.
+
+### RSA-1984 certificate chain
+
+ColossusNet also maintains an RSA-1984 certificate chain (CAPK → Issuer → ICC) required by the EMV specification for offline data authentication. The terminal uses this chain to attempt DDA, which intentionally fails, forcing the transaction online to ColossusNet for on-chain settlement. See [Transaction Flow](/technical/transaction-flow) for details on the deliberate ODA failure mechanism.
+
+---
+
+## Service Code 701
+
+The card's Service Code is set to `701`, signaling a closed-loop network:
+
+| Digit | Value | Meaning |
+|-------|-------|---------|
+| 1 | `7` | No interchange except under bilateral agreement (closed loop) |
+| 2 | `0` | Normal authorization processing |
+| 3 | `1` | No restrictions |
+
+This service code tells acquirers and terminals that the card operates on a private network with its own authorization and settlement rules.
+
+---
+
+## Card Registration (RIX 1030)
+
+Card registration binds a physical ColossusNet card to an on-chain ERC-4337 account. This is handled by a dedicated non-payment applet called **RIX 1030**.
+
+### Why RIX 1030 exists
+
+Apple iOS restricts third-party applications from accessing PPSE (`2PAY.SYS.DDF01`) via NFC. A mobile app cannot select the card's payment applets (RIX 1010 or RIX 1020) to read registration data. RIX 1030 provides a **non-payment applet** that iOS allows third-party apps to access over NFC.
+
+| Field | Value |
+|-------|-------|
+| AID | `A0000009511030` |
+| Interface | Contactless (NFC) |
+| Kernel | None (non-payment applet) |
+
+### Exported data
+
+When selected, RIX 1030 returns two values in its FCI response:
+
+| Tag | Name | Length | Description |
+|-----|------|--------|-------------|
+| `57` | Track 2 Equivalent Data | Variable | Tokenized PAN (not the real PAN) |
+| `9F2D` | ICC ECC Public Key | 65 bytes | Uncompressed P-256 public key (`04 \|\| X \|\| Y`) |
+
+### APDU command
+
+The mobile app selects RIX 1030 using a standard SELECT command:
+
+```
+SELECT
+  CLA:  00
+  INS:  A4
+  P1:   04    (Select by DF name)
+  P2:   00    (First or only occurrence)
+  Lc:   07
+  Data: A0000009511030
+  Le:   00
+```
+
+### Registration flow
+
+1. **Tap card**: The user taps their ColossusNet card on their phone. The mobile app selects RIX 1030 via NFC and reads the tokenized PAN and P-256 public key from the FCI response.
+
+2. **Confirm**: The mobile app displays the registration details for the user to confirm.
+
+3. **On-chain registration**: The mobile app submits a transaction to ColossusNet that installs the `EMVValidator` module on the cardholder's ERC-4337 kernel account:
+
+```
+kernel.installModule(
+  MODULE_TYPE_VALIDATOR,
+  emvValidatorAddress,
+  encode(atc=0, exponent, modulus/pubkey)
+)
+```
+
+Once confirmed, the Colossus Indexer records two mappings:
+- **PAN** → account address
+- **P-256 public key** → account address
+
+These mappings allow the [middleware](/technical/middleware) to route incoming ISO 8583 transactions to the correct on-chain account.
+
+### Registration with issuer
+
+When registering through an issuer, the process adds two steps:
+
+1. **Account setup**: The user creates an ERC-4337 account with a secp256k1 root signer.
+2. **Card tap**: The user taps the ColossusNet card. The mobile app selects RIX 1030 via NFC and retrieves the secp256r1 public key and tokenized PAN.
+3. **On-chain registration**: The user registers the PAN, secp256r1 public key, and **issuer hook** on ColossusNet. The issuer hook binds the card to the issuer's collateral pool.
+4. **Source chain module installation**: The cardholder installs the `EMVValidator` and `EMVSettlement` modules on their source chain ERC-4337 account, enabling the issuer to noncustodially retrieve settlement amounts after transactions.
+
+See the [issuer guide](/guides/issuers) for details on the issuer-mediated model.
+
+## Source code
+
+| Component | Repository |
+|-----------|-----------|
+| JavaCard applet simulator | [emv-card-sim](https://github.com/colossus-credit/emv-card-sim) |

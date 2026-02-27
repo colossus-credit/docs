@@ -1,8 +1,169 @@
 ---
-title: Technical Deployment
-description: Deploying Colossus infrastructure
+title: Terminal Configuration & Deployment
+description: ColossusNet AID configuration, ICS settings, CAPK entries, contactless parameters, and network deployment reference.
 ---
 
-# Technical Deployment
+# Terminal Configuration & Deployment
 
-Content coming soon.
+This page provides the complete terminal configuration reference for deploying ColossusNet on EMVCo Level 1/2/3 certified POS terminals. These parameters must be loaded into the terminal's configuration before it can process ColossusNet transactions.
+
+## ColossusNet AID Configuration
+
+The Application Identifier (AID) configuration tells the terminal how to recognize and process ColossusNet cards.
+
+| Parameter | Value |
+|-----------|-------|
+| Partial AID Selection | Enabled |
+| Application ID | `A0000009510001` |
+| Terminal AID Version | `0001` |
+| TAC Denial | `0010000000` |
+| TAC Online | `D84004F800` |
+| TAC Default | `D84000A800` |
+| Floor Limit | `0` |
+| Threshold | `0` |
+| Target Percentage | `0` |
+| Max Target Percentage | `0` |
+| Terminal Default TDOL | `9F02065F2A029A039C0195059F3704` |
+| Terminal Default DDOL | `9F3704` |
+| AID Type | `A` |
+
+### TAC Configuration Explained
+
+The Terminal Action Codes (TAC) work together with the card's Issuer Action Codes (IAC) to determine transaction outcomes:
+
+- **TAC Denial (`0010000000`)**: Minimal denial conditions. The terminal will only deny offline if the ICC Data Missing bit is set.
+- **TAC Online (`D84004F800`)**: Aggressively forces online authorization. Any ODA failure, expired application, or risk management trigger pushes the transaction online.
+- **TAC Default (`D84000A800`)**: If online authorization is not possible, these conditions determine whether to decline. Combined with the card's IAC settings, this ensures no offline approvals occur.
+
+The **Floor Limit = 0** setting means every transaction, regardless of amount, requires online authorization. The Threshold, Target Percentage, and Max Target Percentage are all zero because random transaction selection for online processing is unnecessary; all transactions go online by design.
+
+### DDOL and TDOL
+
+The **Terminal Default DDOL** (`9F3704`) specifies that the Unpredictable Number (4 bytes) is sent to the card for the INTERNAL AUTHENTICATE command.
+
+The **Terminal Default TDOL** (`9F02065F2A029A039C0195059F3704`) specifies the data elements the terminal provides during transaction processing:
+
+| Tag | Length | Field |
+|-----|--------|-------|
+| `9F02` | 6 | Amount Authorised |
+| `5F2A` | 2 | Transaction Currency Code |
+| `9A` | 3 | Transaction Date |
+| `9C` | 1 | Transaction Type |
+| `95` | 5 | TVR |
+| `9F37` | 4 | Unpredictable Number |
+
+## ICS Configuration: Type 1 (Attended, All CVM)
+
+The Integrated Circuit card Specification (ICS) configuration defines the terminal's capabilities for contact chip transactions.
+
+| Parameter | Value |
+|-----------|-------|
+| Terminal Type | `22` (Merchant, attended, online+offline) |
+| Card Data Input Capability | `20` (IC only) |
+| CVM Capability | `00` (None) |
+| Security Capability | `40` (DDA only) |
+| Additional Terminal Capabilities | `FF80F0A001` |
+| PIN Try Counter | Supported |
+| Bypass PIN Entry | Supported |
+| Exception File | Supported |
+| Forced Online Capability | **Yes** |
+| Issuer Referrals | Supported |
+
+### Key Configuration Notes
+
+- **Terminal Type `22`** indicates a merchant-attended terminal capable of both online and offline operation. Although offline approval is never granted for ColossusNet cards, the terminal type must advertise offline capability so the EMV flow proceeds normally through ODA before being forced online.
+- **Card Data Input Capability `20`** restricts the terminal to IC (chip) only. Magnetic stripe fallback is not supported.
+- **CVM Capability `00`** indicates no cardholder verification methods are required at the terminal level. CVM processing is handled by the card's CVM List.
+- **Security Capability `40`** indicates DDA support only. SDA and CDA are not used.
+- **Forced Online Capability = Yes** is critical. This ensures the terminal can force transactions online when TAC/IAC conditions are met (which they always are for ColossusNet, due to the deliberate ODA failure).
+
+## CAPK Entry
+
+The Certification Authority Public Key (CAPK) is used by the terminal to verify the issuer's public key certificate during offline data authentication. Although ODA always fails by design (because the card produces ECDSA signatures instead of RSA), the CAPK must still be present for the terminal to attempt ODA at all.
+
+| Parameter | Value |
+|-----------|-------|
+| RID | `A000000951` |
+| Key ID | `92` |
+| Hash Algorithm Index | `1` (SHA-1) |
+| RSA Algorithm Index | `1` (RSA) |
+| Module Length | 248 bytes |
+| Module | - |
+| Exponent Length | 1 byte |
+| Exponent | `03` |
+| Expiry Date | `341231` |
+| Checksum (SHA-1) | - |
+
+The CAPK RID (`A000000951`) matches the ColossusNet Registered Application Provider Identifier. The Key ID `92` is referenced by the card's CAPK Index field (Tag `8F`). The RSA modulus and checksum values are deployment-specific and omitted from this reference.
+
+## Contactless Configuration: payWave
+
+Contactless parameters for the ColossusNet AID matching the Visa payWave (Kernel C-3) configuration pattern:
+
+| Parameter | Value |
+|-----------|-------|
+| Contactless CVM Limit | 0 ($0.00) |
+| Contactless Transaction Limit (On-Device) | 9999999 |
+| Contactless Transaction Limit (No On-Device) | 9999999 |
+| Contactless Floor Limit | 0 |
+| Card Data Input | `E0` |
+| CVM Capability (CVM Required) | `60` |
+| CVM Capability (No CVM Required) | `08` |
+| Security Capability | `08` |
+| Kernel Configuration | `B0` |
+| Additional Terminal Capability | `6000F0A001` |
+
+### Contactless Limits
+
+- **CVM Limit = 0** means no cardholder verification is required at any amount. CVM processing is handled through the contactless CVM flow (CDCVM or Online PIN if applicable).
+- **Transaction Limits = 9999999** ($99,999.99) are effectively unlimited. All authorization decisions are made on-chain, not at the terminal.
+- **Floor Limit = 0** forces every contactless transaction online. No offline contactless approvals are permitted.
+
+### Kernel Configuration Byte (`DF8101` = `0xB0`)
+
+The kernel configuration byte controls Kernel C-3 behavior:
+
+| b7 | b6 | b5 | b4 | b3 | b2 | b1 | b0 | Meaning |
+|----|----|----|----|----|----|----|----|----|
+| **1** | | | | | | | | EMV mode contactless supported |
+| | 0 | | | | | | | RFU |
+| | | **1** | | | | | | EMV mode contactless supported |
+| | | | **1** | | | | | On-device CVM supported |
+| | | | | 0 | | | | RFU |
+| | | | | | 0 | | | RFU |
+| | | | | | | 0 | | RFU |
+| | | | | | | | 0 | RFU |
+
+### CVM Capabilities
+
+- **CVM Required (`60`)**: Enciphered PIN online + Signature. When a CVM is required (amount above CVM limit, which is $0.00 in this configuration), the terminal supports online PIN and signature.
+- **No CVM Required (`08`)**: No CVM. When no CVM is required, the transaction proceeds without cardholder verification.
+
+## Network Parameters
+
+| Parameter | Value |
+|-----------|-------|
+| RID | `A000000951` |
+| BIN | `66907500` |
+| PAN Format | `6690 75XX XXXX XXXX` (16 digits, Luhn-checked) |
+| Issuer Identifier | First 6 digits of PAN (`669075`) |
+| BIN Reserved Range | `66907500` - `66907599` |
+| Chain ID | `951` |
+| Network Name | ColossusNet |
+| Block Time | 1 second |
+| Preconfirmation | Flashblock (100ms) |
+| Data Availability | Ethereum L1 (calldata/blobs) |
+| Settlement | Ethereum L1 (optimistic, 7-day challenge window) |
+
+### Supported Stablecoins
+
+The terminal uses standard EMV currency codes. The `EMVSettlement` contract automatically maps the transaction's currency code (tag `5F2A`, ISO 4217) to the corresponding ERC-20 token. Token selection is an acquirer-level configuration; no terminal-side changes are required.
+
+See [Smart Contracts](/technical/smart-contracts#supported-stablecoins) for the full list of supported stablecoins.
+
+## Source code
+
+| Component | Repository |
+|-----------|-----------|
+| Minimum Viable Payment Terminal | [emvpt](https://github.com/colossus-credit/emvpt) |
+| Local development network | [devnet](https://github.com/colossus-credit/devnet) |

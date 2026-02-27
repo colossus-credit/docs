@@ -1,0 +1,105 @@
+---
+title: Overview
+description: What ColossusNet is, how it works, fee structure, settlement models, and regulatory framework.
+---
+
+# ColossusNet Overview
+
+ColossusNet is a stablecoin credit card network that settles on an Ethereum L2. It repurposes standard EMV chip cards as Ethereum private keys, settling card payments as on-chain stablecoin transfers instantly and noncustodially.
+
+## How it works
+
+ColossusNet repurposes the standard [EMV](https://www.emvco.com/what-are-emv-specifications/) credit card terminal to sign an Ethereum [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337) transaction:
+
+1. The cardholder taps their card at a terminal, signing an ERC-4337 transaction using ECDSA P-256.
+2. The terminal sends the signature to the [acquirer](https://en.wikipedia.org/wiki/Acquiring_bank) via ISO 8583.
+3. The acquirer forwards the message to the ColossusNet [middleware](/technical/middleware).
+4. The middleware constructs a UserOperation and submits it to the sequencer.
+5. The sequencer executes the transaction on-chain and returns a preconfirmation in **100ms**.
+6. The preconfirmation serves as the authorization response, sent back through the acquirer to the terminal.
+
+The on-chain kernel validates the card's ECDSA signature, executes stablecoin transfers (fees and merchant payment), and returns a success or failure result, all within the preconfirmation window.
+
+## Acquirer distribution
+
+Credit card [acquirers](https://en.wikipedia.org/wiki/Acquiring_bank) (Fiserv, Elavon, Global Payments, Worldpay, etc.) own the relationship with merchants. A ColossusNet integration with an acquirer makes the card available at all of that acquirer's merchants.
+
+**ColossusNet achieves the same merchant distribution as Visa by integrating directly with acquirers** rather than building merchant relationships from scratch. The integration uses the same ISO 8583 protocol acquirers already support for Visa and Mastercard.
+
+## Two settlement paths
+
+ColossusNet supports two transaction settlement paths, each with different fee structures:
+
+### Direct debit
+
+The cardholder's ERC-4337 account holds stablecoins on ColossusNet. Transactions debit directly from this balance during the transaction, settling instantly with the merchant. No issuer is involved.
+
+### Issuer-mediated
+
+A registered issuer posts stablecoin collateral to ColossusNet and funds transactions on behalf of cardholders. The merchant is settled instantly from the issuer's collateral pool. The issuer then asynchronously retrieves the settlement amount from the cardholder's wallet on the source chain.
+
+This model enables credit-like functionality: the cardholder spends now, the issuer settles later. See the [issuer guide](/guides/issuers) for details.
+
+## Fee structure
+
+### Direct debit fees (no issuer)
+
+In the direct debit model, there is no issuer and no interchange fee. The merchant pays only:
+
+| Fee | Rate | Recipient |
+|-----|------|-----------|
+| Network fee | 0.13-0.15% | ColossusNet |
+| Acquirer fee | Up to 0.30% | Acquirer |
+| Swipe fee | $0.01-$0.10 per txn | Acquirer |
+| **Total merchant cost** | **~0.23-0.45%** | |
+
+This is a **92-96% fee reduction** compared to traditional card networks (2-3% total).
+
+### Issuer-mediated fees
+
+In the issuer-mediated model, an interchange fee is added. The full four-tier fee structure is:
+
+| Fee | Max rate | Recipient |
+|-----|----------|-----------|
+| Network fee | 0.15% (15 bp) | ColossusNet |
+| Acquirer fee | 0.30% (30 bp) | Acquirer |
+| Swipe fee | Fixed amount | Acquirer |
+| Interchange fee | 2.50% (250 bp) | Issuer |
+
+All fees are deducted from the transaction amount before the merchant receives the remainder. The interchange fee compensates the issuer for posting collateral and managing cardholder credit risk.
+
+### Comparison with traditional networks
+
+| Fee component | Traditional network | ColossusNet (direct debit) |
+|---------------|--------------------|-----------------------------|
+| Interchange (issuer) | 1.15-2.50% | None (no issuer) |
+| Assessment (card network) | ~0.13-0.15% | Replaced by network fee |
+| Processor fee | Bundled with acquirer | Eliminated |
+| Acquirer fee | 0.10-0.30% | 0.10-0.30% |
+| Network fee | N/A | 0.13-0.15% |
+| Swipe fee | $0.01-$0.10 | $0.01-$0.10 |
+
+## Regulatory framework
+
+### GENIUS Act
+
+The [GENIUS Act](https://en.wikipedia.org/wiki/GENIUS_Act) classifies stablecoin transfers as payment instrument transactions. Under this framework, the KYC/AML obligation falls on the **stablecoin issuer** (e.g., Frax for frxUSD, Circle for USDC), not on the payment network moving the stablecoins. This enables ColossusNet to operate as a payment network without a [money transmitter license](https://en.wikipedia.org/wiki/Money_transmitter).
+
+### Durbin Amendment
+
+The [Durbin Amendment](https://en.wikipedia.org/wiki/Durbin_amendment) mandates that every US debit card support at least two unaffiliated payment networks. Card manufacturers already support multi-applet cards to comply with this regulation, and Visa or Mastercard cannot contractually prevent a second network from being loaded. ColossusNet uses this to enable **dual issuance**: loading the Colossus applet alongside Visa or Mastercard on the same physical card. See [Card Architecture](/technical/card#dual-issuance) for details.
+
+### OFAC compliance
+
+ColossusNet enforces OFAC (Office of Foreign Assets Control) sanctions compliance at the **sequencer level**. See [Security](/technical/security#ofac-compliance) for details.
+
+## Network identifiers
+
+See [Terminal Configuration](/technical/deployment#network-parameters) for the full network parameter reference.
+
+| Parameter | Value |
+|-----------|-------|
+| RID | `A000000951` |
+| Chain ID | `951` |
+| Block time | 1 second |
+| Preconfirmation | Flashblock (100ms) |

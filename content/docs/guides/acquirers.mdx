@@ -1,0 +1,59 @@
+---
+title: For Acquirers
+description: How to integrate with ColossusNet as an acquirer, including ISO 8583 protocol, fee structure, merchant management, and settlement.
+---
+
+# For Acquirers
+
+ColossusNet is built around acquirers. Acquirers own merchant distribution, and ColossusNet achieves the same reach as Visa or Mastercard by integrating directly with acquirers like Fiserv, Elavon, Global Payments, and Worldpay.
+
+The integration uses the same ISO 8583 protocol you already support.
+
+## Revenue
+
+Acquirers earn fees on every ColossusNet transaction through two channels:
+
+| Fee | Rate | Details |
+|-----|------|---------|
+| Acquirer fee | Up to 0.30% (30 bp) | Percentage of transaction amount, set per-acquirer |
+| Swipe fee | Fixed amount per txn | Set per-acquirer |
+
+These fees are configured in the `AcquirerConfig` contract on ColossusNet and distributed automatically during each transaction. You set your own rates within the allowed maximums.
+
+## ISO 8583 integration
+
+ColossusNet uses the same ISO 8583 message flow you already support. Terminals send MTI 0200 authorization requests with standard data elements (DE2 PAN, DE4 Amount, DE55 ICC Data, etc.). You receive MTI 0210 responses with DE39 response codes.
+
+The ColossusNet [middleware](/technical/middleware) sits between your systems and the blockchain. It translates ISO 8583 messages into ERC-4337 UserOperations, submits them to the ColossusNet sequencer, and returns standard ISO 8583 responses. **You never need to interact with the blockchain directly.**
+
+No protocol changes. No new message formats. No blockchain SDKs.
+
+## Instant settlement
+
+ColossusNet operates as a **Single Message System (SMS)**. Authorization and settlement happen atomically in the same transaction. When you forward an ISO 8583 authorization request, the stablecoin transfer executes on-chain during that same request. By the time the MTI 0210 response comes back, settlement has already occurred.
+
+There is no batch processing, no end-of-day clearing, and no settlement risk window.
+
+## Merchant management
+
+You register and manage merchants and terminals on-chain through the `AcquirerConfig` contract:
+
+- **Acquirer ID** → your fee configuration and fee recipient address
+- **Merchant IDs** → merchant Ethereum addresses
+- **Terminal IDs** → terminal addresses
+
+This gives you a verifiable, on-chain registry of your merchant portfolio. Merchants can optionally register an Ethereum address with you to take direct control of their ColossusNet account, or you can manage their funds and settle with them through your existing processes.
+
+See [Smart Contracts](/technical/smart-contracts#acquirerconfig-contract) for the full `AcquirerConfig` storage structure.
+
+## Settlement export API
+
+For acquirers who conduct follow-on settlement with merchants (e.g., after converting stablecoins to fiat via wire), ColossusNet provides a settlement export. See [Settlement](/technical/settlement#settlement-export-api) for the API reference.
+
+## Wire liquidation
+
+Stablecoin balances can be liquidated via wire transfer to a traditional bank account. See [Settlement](/technical/settlement#wire-liquidation) for details.
+
+## Gas sponsorship
+
+ColossusNet sponsors all transaction gas through a paymaster contract. You do not pay gas fees, your merchants do not pay gas fees, and cardholders do not pay gas fees. Gas costs are amortized into the network fee structure. Your integration is purely ISO 8583: no ETH, no wallets, no gas management.

@@ -1,0 +1,72 @@
+---
+title: For Issuers
+description: How to integrate with ColossusNet as an issuer, including collateral model, signing API, interchange revenue, and cardholder settlement.
+---
+
+# For Issuers
+
+ColossusNet gives banks and fintechs a new way to issue payment cards with attractive economics, flexible credit management, and built-in settlement infrastructure.
+
+## Revenue
+
+Issuers earn **interchange fees of up to 2.50%** (250 basis points) on every ColossusNet transaction processed through the issuer-mediated model. The interchange rate is a global network parameter, and the full amount flows to the issuer.
+
+## How the collateral model works
+
+Rather than funding transactions through traditional banking rails, ColossusNet uses an on-chain collateral model:
+
+1. **Post collateral**: Deposit stablecoins into a ColossusNet collateral pool. This pool covers transactions for your cardholders.
+2. **Fund transactions**: When a cardholder taps their card, ColossusNet forwards the card's cryptographic proof to you. You validate the transaction and return a signed funding authorization.
+3. **Dual-signature settlement**: ColossusNet verifies both the card's EMV signature (ECDSA P-256) and your funding signature, then draws from your collateral pool to settle with the merchant instantly.
+4. **Top up as needed**: Periodically replenish your collateral balance. Transactions that would exceed available collateral are declined automatically by on-chain enforcement.
+
+This model gives you full control over your exposure while enabling instant merchant settlement.
+
+## Asynchronous cardholder settlement
+
+After the merchant is paid from your collateral pool, you independently retrieve the settlement amount from the cardholder. The cardholder's source chain account has the ColossusNet ERC-7579 modules installed, enabling you to noncustodially retrieve settlement amounts. See [Cross-Chain Architecture](/technical/cross-chain#how-issuer-settlement-works-across-chains) for the full flow.
+
+## Issuer hooks
+
+When cards are registered on ColossusNet, they are bound to your issuer hook, a smart contract you deploy on ColossusNet. The hook executes within the transaction context and validates that `txn.origin` matches your stored issuer address. This ensures only your authorized systems can draw against your collateral pool.
+
+The hook is registered during the card registration process and is invoked automatically after the card's EMV signature is validated.
+
+## Signing API
+
+To participate in transaction authorization, you host a WebSocket signing endpoint:
+
+```
+/api/v1/eth_signRawTransactionSync
+```
+
+The endpoint receives a raw byte stream containing the transaction to be funded. Your system validates the transaction (checking cardholder balance, credit limits, risk parameters, and any other criteria you define) and returns a signed response synchronously.
+
+The WebSocket design is intentional: ColossusNet's measured authorization latency is **172ms**, and the synchronous round-trip ensures your authorization decision fits within that window.
+
+## Credit limit enforcement
+
+Credit limits and available credit calculations are managed entirely by you through the signing API. When a transaction arrives at your signing endpoint, you evaluate cardholder creditworthiness and balance before returning a signed funding authorization. ColossusNet does not enforce or calculate credit limits; that authority remains with the issuer.
+
+This means you can implement whatever credit policy you choose: traditional credit limits, dynamic risk scoring, real-time fraud checks, or any other logic your business requires.
+
+## Card registration flow
+
+Registering a cardholder with an issuer follows a four-step process:
+
+1. **Account setup**: The cardholder creates an ERC-4337 account with a standard Ethereum key pair (secp256k1 root signer).
+2. **Card tap**: The cardholder taps their ColossusNet card on their phone. The mobile app reads the card via NFC and retrieves the secp256r1 public key and tokenized PAN.
+3. **On-chain registration**: The cardholder submits a transaction registering the PAN, secp256r1 public key, and your **issuer hook** on ColossusNet. This binds the card to your collateral pool.
+4. **Source chain module installation**: The cardholder installs the `EMVValidator` and `EMVSettlement` modules on their source chain ERC-4337 account, enabling you to noncustodially retrieve settlement amounts.
+
+See [Card Registration](/technical/card#registration-with-issuer) for the full technical flow.
+
+## What ColossusNet provides
+
+You focus on credit policy, risk management, and cardholder relationships. ColossusNet handles the rest:
+
+- **Settlement infrastructure**: Instant stablecoin settlement with merchants from your collateral pool.
+- **On-chain signature verification**: Card EMV signatures validated via the RIP-7212 P-256 precompile.
+- **Cross-chain bridging**: Cardholders and issuers can fund accounts from any EVM chain via LayerZero OFT V2.
+- **Gas sponsorship**: All transaction gas is covered by ColossusNet. Neither you nor your cardholders pay gas fees.
+- **Immutable audit trail**: Every transaction is recorded on-chain for compliance and reconciliation.

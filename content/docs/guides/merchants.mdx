@@ -1,0 +1,70 @@
+---
+title: For Merchants
+description: How to accept ColossusNet payments, including fees, settlement, registration, wire liquidation, and chargebacks.
+---
+
+# For Merchants
+
+ColossusNet gives merchants lower fees, instant settlement, and full on-chain transparency. No new hardware required.
+
+## Fee savings
+
+Traditional credit card processing costs merchants 2-3% of every transaction (interchange + network assessment + acquirer/processor fees). ColossusNet eliminates interchange and assessment fees entirely in the [direct debit model](/overview#direct-debit-fees-no-issuer):
+
+| Fee | Rate | Recipient |
+|-----|------|-----------|
+| Network fee | 0.13-0.15% | ColossusNet |
+| Acquirer fee | Up to 0.30% | Acquirer |
+| Swipe fee | $0.01-$0.10 per txn | Acquirer |
+| **Total** | **~0.23-0.45%** | |
+
+That is a **92-96% reduction** in card processing fees compared to traditional networks.
+
+In the [issuer-mediated model](/overview#issuer-mediated-fees), an interchange fee of up to 2.50% is also deducted (paid to the card issuer). The settlement model depends on the cardholder's configuration, not the merchant's.
+
+For a merchant processing $1M in annual card volume on direct debit, that is the difference between $20,000-$30,000 in traditional fees versus $2,300-$4,500.
+
+## No terminal changes
+
+ColossusNet is EMV standards compliant. Any EMVCo Level 1/2/3 certified terminal works with ColossusNet cards. Customers tap or insert their card exactly as they would with any other payment card.
+
+No terminal replacement, firmware updates, or new hardware required.
+
+## Getting started
+
+### Through an acquirer
+
+If you already work with a payment acquirer (Fiserv, Elavon, Global Payments, Worldpay, etc.), the simplest path is through them. When your acquirer integrates with ColossusNet, your business is automatically enrolled. Your acquirer registers your merchant ID and terminal IDs on-chain and manages settlement on your behalf.
+
+If you want more control, you can optionally register an Ethereum address with your acquirer to take direct ownership of your ColossusNet account.
+
+### Self-acquiring
+
+Merchants without an acquirer can register directly on ColossusNet using an Ethereum address. No acquirer or intermediary is needed. Funds settle directly to your registered address on-chain.
+
+## How settlement works
+
+ColossusNet settles transactions **instantly**. Stablecoin balances are transferred during the authorization itself, not hours or days later.
+
+- **Acquirer-managed**: Funds transfer to your acquirer's account on ColossusNet during the transaction. Your acquirer settles with you through their existing payout process.
+- **Self-acquiring**: Funds transfer directly to your registered Ethereum address during the transaction. You have immediate access.
+
+There is no batch processing, no end-of-day clearing, and no T+2 delay. When the terminal shows "Approved," the stablecoins have already moved. On-chain balances are independently verifiable at any time through a block explorer or by querying the stablecoin contract.
+
+## No chargebacks
+
+On-chain settlement is atomic and final. Once a transaction is confirmed, it cannot be reversed at the protocol level. All dispute resolution is managed by a third-party insurance provider outside the transaction flow. See [Settlement](/technical/settlement#disputes--chargebacks) for details.
+
+Merchants are not exposed to chargeback fees, arbitration costs, or the representment burden of traditional card processing.
+
+## Wire liquidation
+
+If you prefer to receive funds in a traditional bank account rather than holding stablecoins, ColossusNet supports **wire liquidation** for converting stablecoin balances to fiat via wire transfer. See [Settlement](/technical/settlement#wire-liquidation) for details.
+
+## Fee transparency
+
+All fees are recorded on-chain. The network fee, acquirer fee, and swipe fee for every transaction are visible and immutable. There are no hidden surcharges, no bundled processor fees, and no opaque interchange tiers.
+
+## Agentic commerce
+
+ColossusNet is well-suited for **agentic commerce**, where AI agents make purchases autonomously. Agents benefit from no chargebacks, instant finality, and deterministic on-chain settlement.

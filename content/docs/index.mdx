@@ -1,46 +1,54 @@
 ---
-title: Colossus Documentation
-description: The stablecoin-native credit card network
+title: ColossusNet Documentation
+description: The stablecoin-native credit card network settling on Ethereum
 ---
 
-## Get Started
+## Overview
 
 <Cards>
-  <Card title="Why Colossus" href="/introduction/why-colossus" />
-</Cards>
-
-## Cards
-
-<Cards>
-  <Card title="Card Documentation" href="/card/overview" />
+  <Card title="Overview" href="/overview" description="What ColossusNet is, how it works, fees, and regulatory framework" />
 </Cards>
 
 ## Technical
 
 <Cards>
-  <Card title="Stack Design" href="/technical/stack-design" />
-  <Card title="Transaction Flow" href="/technical/transaction-flow" />
-  <Card title="Host Message Bundling" href="/technical/host-message-bundling" />
-  <Card title="Deployment" href="/technical/deployment" />
+  <Card title="System Architecture" href="/technical/architecture" description="Four-layer stack, L2 parameters, ERC-4337, and timing budget" />
+  <Card title="Card Architecture" href="/technical/card" description="JavaCard applets, dual issuance, cryptographic design, and registration" />
+  <Card title="Transaction Flow" href="/technical/transaction-flow" description="Contact, contactless, and issuer-mediated transaction paths" />
+  <Card title="Smart Contracts" href="/technical/smart-contracts" description="EMVValidator, EMVSettlement, AcquirerConfig, and fee structure" />
+  <Card title="Settlement" href="/technical/settlement" description="Single message system, fee distribution, and wire liquidation" />
+  <Card title="Cross-Chain" href="/technical/cross-chain" description="LayerZero OFT V2 bridging and source chain modules" />
+  <Card title="ISO 8583 Middleware" href="/technical/middleware" description="Message parsing, UserOperation construction, and gas sponsorship" />
+  <Card title="Security" href="/technical/security" description="Threat model, trust assumptions, OFAC compliance, and key hierarchy" />
+  <Card title="Deployment" href="/technical/deployment" description="Terminal configuration, CAPK entries, and network parameters" />
 </Cards>
 
-## Incentives
+## Guides
 
 <Cards>
-  <Card title="Merchants" href="/incentives/merchants" />
-  <Card title="Issuers" href="/incentives/issuers" />
-  <Card title="Acquirers" href="/incentives/acquirers" />
+  <Card title="For Merchants" href="/guides/merchants" description="Fee savings, settlement, registration, and wire liquidation" />
+  <Card title="For Issuers" href="/guides/issuers" description="Collateral model, signing API, interchange revenue, and credit policy" />
+  <Card title="For Acquirers" href="/guides/acquirers" description="ISO 8583 integration, fee structure, merchant management" />
+  <Card title="For Cardholders" href="/guides/cardholders" description="Wallet setup, card registration, funding, and payments" />
 </Cards>
 
-## User Guides
+## Reference
 
 <Cards>
-  <Card title="Cardholder App" href="/user-guides/cardholder-app" />
-  <Card title="Merchant App" href="/user-guides/merchant-app" />
+  <Card title="FAQ" href="/faq" description="Common questions about cards, fees, regulation, and compatibility" />
+  <Card title="API Reference" href="/api-reference" description="ISO 8583 middleware endpoints and schemas" />
 </Cards>
 
-## API
+## Repositories
 
-<Cards>
-  <Card title="API Endpoints" href="/api-reference/endpoints" />
-</Cards>
+Source code is available at [github.com/colossus-credit](https://github.com/colossus-credit):
+
+| Repository | Language | Description |
+|-----------|----------|-------------|
+| [emv-validator](https://github.com/colossus-credit/emv-validator) | Solidity | ERC-7579 Validator and Executor for ERC-4337 |
+| [emv-card-sim](https://github.com/colossus-credit/emv-card-sim) | Java | ColossusNet JavaCard applet simulator |
+| [emvpt](https://github.com/colossus-credit/emvpt) | Rust | Minimum Viable Payment Terminal |
+| [kernel](https://github.com/colossus-credit/kernel) | Solidity | ZeroDev Kernel (ERC-4337 smart account) |
+| [devnet](https://github.com/colossus-credit/devnet) | JavaScript | ColossusNet local development network |
+| [rollup-boost](https://github.com/colossus-credit/rollup-boost) | Rust | Sidecar to enable rollup extensions |
+| [builder-playground](https://github.com/colossus-credit/builder-playground) | Go | End-to-end block building environment |

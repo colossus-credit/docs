@@ -1,0 +1,89 @@
+---
+title: For Cardholders
+description: How to set up your ColossusNet wallet, register your card, fund your account, and make payments.
+---
+
+# For Cardholders
+
+This guide covers everything you need to use a ColossusNet card for everyday payments.
+
+## Getting started
+
+To use ColossusNet, you need an **ERC-4337 wallet account**, a smart contract wallet on Ethereum that supports account abstraction. The ColossusNet mobile app walks you through creating one. Your account uses a standard Ethereum key pair (secp256k1) as the root signer.
+
+## Registering your card
+
+Once your wallet is set up, register your ColossusNet card by tapping it on your phone:
+
+1. Open the ColossusNet app and navigate to card registration.
+2. Hold your ColossusNet card against your phone's NFC reader.
+3. The app reads the card via NFC, retrieving the card's P-256 public key and tokenized PAN.
+4. Confirm the registration in the app.
+5. The app submits a transaction to ColossusNet, linking your card's cryptographic identity to your wallet account.
+
+After registration, your card is ready to use.
+
+If registering through an **issuer** (a bank or fintech), there are two additional steps:
+- Your card is bound to the issuer's **hook contract**, linking it to their collateral pool.
+- You install `EMVValidator` and `EMVSettlement` modules on your source chain wallet, enabling the issuer to settle with you noncustodially after transactions.
+
+See [Card Registration](/technical/card#card-registration-rix-1030) for the full technical flow.
+
+## Funding your account
+
+### Direct funding
+
+Hold stablecoins directly in your ColossusNet wallet. When you pay, the transaction amount is debited from your balance immediately. No issuer involved; your funds move directly to the merchant. This is the simplest model.
+
+### Issuer-backed funding
+
+Your issuer posts stablecoin collateral to ColossusNet and funds transactions on your behalf. When you tap your card, the merchant is paid instantly from the issuer's collateral pool. Your issuer settles with you separately, retrieving the amount from your source chain wallet later.
+
+This model works like a traditional credit card: spend now, settle later. Your issuer manages credit limits, risk assessment, and settlement timing.
+
+### Cross-chain funding
+
+You can bridge stablecoins from **any EVM-compatible chain** to your ColossusNet account using LayerZero OFT V2. See [Cross-Chain Architecture](/technical/cross-chain) for supported chains and details.
+
+## Making payments
+
+Using your ColossusNet card works the same as any other payment card:
+
+1. **Tap or insert** your card at any standard EMV terminal.
+2. The card signs the transaction using its built-in ECDSA P-256 key.
+3. The signature is sent through the acquirer to ColossusNet for on-chain verification.
+4. Stablecoin transfers execute automatically: fees are distributed and the merchant is paid.
+5. The terminal displays "Approved."
+
+The entire process completes in **under 1 second**. There is no gas fee for cardholders; all transaction gas is sponsored by ColossusNet through a paymaster contract.
+
+## Card form factors
+
+### Physical card
+
+The standard ColossusNet card is an EMV-compliant smart card with a secure element that stores your ECDSA P-256 private key. It supports both contact (chip insert) and contactless (NFC tap) transactions.
+
+### Dual issuance
+
+Your ColossusNet card can carry a traditional Visa or Mastercard applet on the same chip. This is called **dual issuance**. One card works on both networks. See [Card Architecture](/technical/card#dual-issuance) for details.
+
+### Virtual cards on Android
+
+On Android, ColossusNet can load its JavaCard cap files into a virtual secure element, enabling NFC tap-to-pay directly from your phone without a physical card.
+
+### Apple Pay & iOS
+
+Apple Pay is **not currently supported**. Apple restricts Secure Element access to its own CA certificates, blocking third-party payment networks. In the EU, regulation has forced Apple to open NFC access, so iOS NFC payments work there. Full iOS support globally is pending.
+
+## Supported stablecoins
+
+ColossusNet supports USD-pegged stablecoins. The stablecoin used for settlement is determined by the acquirer configuration. See [Smart Contracts](/technical/smart-contracts#supported-stablecoins) for the full list.
+
+## Security
+
+Your card contains a **secure element**, a tamper-resistant chip (EAL5+ certified) that stores your ECDSA P-256 private key.
+
+- **Private key cannot be extracted**: generated and stored inside the secure element; never leaves the chip.
+- **Per-card unique keys**: each card has its own key pair. Compromise of one card does not affect others.
+- **Replay protection**: every transaction includes a unique unpredictable number tracked on-chain.
+- **No offline approvals**: every transaction must be authorized on-chain. There is no offline approval path.
