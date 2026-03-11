@@ -24,9 +24,6 @@ sequenceDiagram
     participant Sequencer_Optimism as ColossusNet RPC (Sequencer)
     participant ERC4337_Kernel as ERC-4337 Kernel (Cardholder Account)
     participant EMV_Validator as EMVValidator
-    participant Sequencer_Account as Network Fee Account
-    participant Acquirer_Account as Acquirer Account
-    participant POS_Account as POS Gateway Account
     participant Merchant_Account as Merchant Account
 
     Note over Merchant_POS: Card tap/insert signs<br>SDAD using ECDSA P-256
@@ -37,12 +34,9 @@ sequenceDiagram
     ERC4337_Kernel->>EMV_Validator: Validate ISO 8583 w/ SDAD
     Note over EMV_Validator: Hash EMV fields using SHA-256<br>Verify ECDSA P-256 signature via RIP-7212
     EMV_Validator-->>ERC4337_Kernel: Validation success/fail
-    Note over ERC4337_Kernel: Initiate stablecoin transfers
+    Note over ERC4337_Kernel: Initiate stablecoin settlement
 
-    ERC4337_Kernel->>Sequencer_Account: Network fee (0.13-0.15%)
-    ERC4337_Kernel->>Acquirer_Account: Acquirer fee (0.10-0.30%)
-    ERC4337_Kernel->>POS_Account: Swipe fee ($0.01-$0.10)
-    ERC4337_Kernel->>Merchant_Account: Remaining transaction amount
+    ERC4337_Kernel->>Merchant_Account: Stablecoin settlement
 
     ERC4337_Kernel->>Sequencer_Optimism: success/fail
     Sequencer_Optimism->>Merchant_POS: Authorization response ISO 8583<br>w/ Authorization Response Cryptogram (ARPC)
@@ -94,9 +88,9 @@ sequenceDiagram
 
 ## Why is Colossus better?
 
-Colossus is a closed-loop stablecoin credit card network built as an Ethereum L2. Colossus vertically integrates the issuing bank, processor, and card network, saving ~1.28-2.65% in credit card fees, representing a **92-96% fee reduction**.
+Colossus is a closed-loop stablecoin credit card network built as an Ethereum L2. By vertically integrating the processor and card network, Colossus eliminates network assessments, per-authorization fees, and the dozens of hidden surcharges that make legacy card processing expensive and opaque, representing a **92-96% fee reduction** compared to traditional card networks.
 
-A Colossus credit card transaction moves stablecoins from the cardholder to the merchant instantly and immutably.
+A Colossus transaction moves stablecoins from the cardholder (or issuer's collateral pool) to the merchant instantly and immutably. In the Direct Debit model, the merchant pays **zero fees**. In the credit models, the merchant pays a single flat rate (1.70% or 2.20%) with no online surcharge, no downgrades, and no per-transaction charges.
 
 **Acquirers own the merchant distribution, not Visa.** Colossus achieves the same distribution as Visa by integrating directly with acquirers (Fiserv, Elavon, Global Payments, Worldpay, etc.).
 
@@ -106,21 +100,23 @@ The [GENIUS Act](https://en.wikipedia.org/wiki/GENIUS_Act) grants Colossus the a
 
 ## Fee structure
 
-In the direct debit model (no issuer), the merchant pays only:
+Colossus has three tiers. One rate per tier. Card-present and card-not-present rates are identical.
 
-| Fee | Rate | Recipient |
-|-----|------|-----------|
-| Network fee | 0.13-0.15% | ColossusNet |
-| Acquirer fee | Up to 0.30% | Acquirer |
-| Swipe fee | $0.01-$0.10 per txn | Acquirer |
-| **Total** | **~0.23-0.45%** | |
+| Tier | Rate (CP & CNP) | Network Fee | Merchant Pays | Chargebacks | Issuance |
+|------|-----------------|-------------|---------------|-------------|----------|
+| Direct Debit | 0% | < $0.001 (cardholder) | Nothing | None | Permissionless |
+| Consumer Credit | 1.70% | < $0.001 (issuer) | 1.70% | Deposit-backed disputes | Permissionless, $100K deposit |
+| Premium Credit | 2.20% | < $0.001 (issuer) | 2.20% | Deposit-backed disputes | Permissioned, deposit by request, 20% cap |
 
-In the [issuer-mediated model](/guides/issuers), an interchange fee of up to 2.50% is added (paid to the issuer who posts collateral). See [Settlement](/technical/settlement) for details.
+The network fee is the cost of processing the transaction on ColossusNet. It is typically less than one-tenth of a penny and is never charged to the merchant.
 
-## Two settlement paths
+There are no assessment fees, no per-authorization fees, no batch processing fees, no online surcharges, and no interchange downgrades. The merchant pays the tier rate and nothing else.
 
-1. **Direct debit**: The cardholder holds stablecoins on ColossusNet. Transactions debit directly from their balance. No issuer involved.
-2. **Issuer-mediated**: An issuer posts collateral and funds transactions on behalf of cardholders. The merchant is settled instantly from the issuer's collateral pool. See the [issuer guide](/guides/issuers) for details.
+## Three settlement tiers
+
+1. **Direct Debit**: The cardholder holds stablecoins on ColossusNet. Transactions debit directly from their balance. The merchant receives the full transaction amount. No issuer involved, no chargebacks.
+2. **Consumer Credit**: An issuer posts collateral and a $100K refundable deposit, then funds transactions on behalf of cardholders. The merchant is settled instantly from the issuer's collateral pool at 1.70% interchange. Dispute resolution is backed by the $100K deposit.
+3. **Premium Credit**: Same settlement model as Consumer Credit but at 2.20% interchange. Permissioned issuance with KYC/AML mandatory, capped at 20% of total ColossusNet card issuance. See the [issuer guide](/guides/issuers) for details.
 
 ## Network identifiers
 

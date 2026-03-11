@@ -31,15 +31,11 @@ flowchart TD
     C --> D[EMVSettlement.execute]
     D --> E[Decode BCD Amount]
     E --> F[AcquirerConfig.calculatePaymentDistribution]
-    F --> G[Network Fee Transfer]
-    F --> H[Interchange Fee Transfer]
-    F --> I[Acquirer Fee Transfer]
-    F --> J[Swipe Fee Transfer]
-    F --> K[Merchant Payment - Remainder]
+    F --> G["Network Fee (< $0.001)"]
+    F --> H[Interchange Fee Transfer<br/>credit tiers only]
+    F --> K[Merchant Payment]
     G --> L[Transaction Complete]
     H --> L
-    I --> L
-    J --> L
     K --> L
     L --> M[DE39=00 → Terminal Approved]
 ```
@@ -62,19 +58,21 @@ If validation fails at any point, the entire transaction reverts and the termina
 
 ## Cardholder Balance & Credit
 
-ColossusNet supports two settlement paths for cardholder funds:
+ColossusNet supports three settlement tiers:
 
-### Direct Debit Model
+### Direct Debit (0%)
 
-The cardholder's ERC-4337 kernel account on ColossusNet holds stablecoin tokens. Transactions debit directly from this balance without issuer involvement.
+The cardholder's ERC-4337 kernel account on ColossusNet holds stablecoin tokens. Transactions debit directly from this balance without issuer involvement. The merchant receives the full transaction amount. No chargebacks.
 
-### Issuer-Mediated Model
+### Consumer Credit (1.70%) and Premium Credit (2.20%)
 
 The issuer posts collateral to ColossusNet and funds transactions on behalf of the cardholder. The settlement flow works as follows:
 
-1. The merchant is settled instantly from the issuer's collateral pool.
+1. The merchant is settled instantly from the issuer's collateral pool (minus the interchange fee: 1.70% or 2.20%).
 2. The issuer asynchronously retrieves the settlement amount from the cardholder's source chain wallet.
 3. Retrieval uses the card's EMV signature and the ERC-7579 modules (`EMVValidator`, `EMVSettlement`) installed on the cardholder's source chain account.
+
+Consumer Credit requires a $100K refundable deposit and is permissionless. Premium Credit is permissioned with KYC/AML mandatory, capped at 20% of total card issuance.
 
 ### Credit Limit Enforcement
 
@@ -130,9 +128,13 @@ The response returns an array of merchant settlement records for the specified a
 
 ## Disputes & Chargebacks
 
-Chargebacks, disputes, and fraud claims are **not handled at the transaction layer**. On-chain settlement is atomic and final. Once a transaction is confirmed, it cannot be reversed at the protocol level. All dispute resolution is managed by a third-party insurance provider, outside the transaction flow.
+Dispute handling depends on the settlement tier:
 
-The on-chain transaction record provides an immutable audit trail for dispute evidence. A network-level insurance pool may be added in a future version.
+- **Direct Debit**: No chargebacks. Transactions are final. The cardholder authorized the payment, the funds moved, and the merchant has them. Disputes between buyer and seller are resolved outside the payment network.
+- **Consumer Credit**: Dispute resolution is backed by the issuer's $100K refundable deposit (separate from the collateral pool).
+- **Premium Credit**: Same dispute resolution as Consumer Credit, backed by the issuer's deposit (amount set by request).
+
+In all cases, on-chain settlement is atomic and final at the protocol level. The on-chain transaction record provides an immutable audit trail for dispute evidence.
 
 ---
 
@@ -142,8 +144,8 @@ The on-chain transaction record provides an immutable audit trail for dispute ev
 |---------|--------|-------|
 | Pre-authorization (holds) | Not supported | SMS requires atomic auth+settle; planned for v2 |
 | Reversals | Not supported | Planned for v2 (MTI 0400/0410) |
-| E-commerce (CNP) | Not supported | EMV requires card-present cryptographic proof |
+| E-commerce (CNP) | Supported | Same rates and authentication as card-present |
 | Offline transactions | Not supported | All transactions require on-chain authorization |
 | Foreign exchange | Not supported | USD only (`0x0840`); multi-currency planned |
 
-A future e-commerce approach will use the card as a signaling mechanism where the merchant's system callbacks to the cardholder's agent or wallet to produce a signature, enabling online authorization without a physical terminal.
+Card-present and card-not-present transactions use the same cryptographic authentication and cost the merchant the same rate.

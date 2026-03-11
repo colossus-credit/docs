@@ -80,4 +80,4 @@ flowchart LR
 5. The issuer submits the card's EMV signature (the same signature used for the original transaction) to the source chain `EMVValidator`.
 6. The source chain `EMVSettlement` module executes a stablecoin transfer from the cardholder's wallet to the issuer, noncustodially.
 
-This asynchronous settlement model decouples the merchant payment (instant, from collateral) from the cardholder debit (deferred, on source chain), allowing issuers to manage credit risk and settlement timing independently.
+This asynchronous settlement model decouples the merchant payment (instant, from the issuer's collateral pool) from the cardholder debit (deferred, on source chain), allowing issuers to manage credit risk and settlement timing independently.

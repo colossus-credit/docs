@@ -11,14 +11,13 @@ The integration uses the same ISO 8583 protocol you already support.
 
 ## Revenue
 
-Acquirers earn fees on every ColossusNet transaction through two channels:
+Acquirer revenue on ColossusNet comes from your own services and markup, not from network-mandated interchange passthrough.
 
-| Fee | Rate | Details |
-|-----|------|---------|
-| Acquirer fee | Up to 0.30% (30 bp) | Percentage of transaction amount, set per-acquirer |
-| Swipe fee | Fixed amount per txn | Set per-acquirer |
+**On credit transactions (Consumer Credit 1.70%, Premium Credit 2.20%)**: The merchant sees the interchange rate (paid to the issuer) and your markup as a separate line item. Pricing is transparent and auditable on-chain.
 
-These fees are configured in the `AcquirerConfig` contract on ColossusNet and distributed automatically during each transaction. You set your own rates within the allowed maximums.
+**On Direct Debit transactions (0% interchange)**: Revenue comes from terminal/gateway subscriptions, bundling Direct Debit with credit acceptance, and value-added services (analytics, loyalty integration, accounting connections).
+
+The acquirer pays no network fees. On credit tiers, the issuer pays the network fee (< $0.001 per transaction). On Direct Debit, the cardholder pays it.
 
 ## ISO 8583 integration
 

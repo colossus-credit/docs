@@ -9,20 +9,20 @@ ColossusNet gives merchants lower fees, instant settlement, and full on-chain tr
 
 ## Fee savings
 
-Traditional credit card processing costs merchants 2-3% of every transaction (interchange + network assessment + acquirer/processor fees). ColossusNet eliminates interchange and assessment fees entirely in the [direct debit model](/overview#direct-debit-fees-no-issuer):
+Traditional credit card processing costs merchants 2-3% per transaction in interchange, network assessments, per-authorization fees, and processor markup. Colossus replaces all of that with a single flat rate per tier.
 
-| Fee | Rate | Recipient |
-|-----|------|-----------|
-| Network fee | 0.13-0.15% | ColossusNet |
-| Acquirer fee | Up to 0.30% | Acquirer |
-| Swipe fee | $0.01-$0.10 per txn | Acquirer |
-| **Total** | **~0.23-0.45%** | |
+| Tier | Merchant Pays | Rate (CP & CNP) | Network Fee |
+|------|---------------|-----------------|-------------|
+| Direct Debit | Nothing | 0% | < $0.001 (cardholder pays) |
+| Consumer Credit | 1.70% | 1.70% | < $0.001 (issuer pays) |
+| Premium Credit | 2.20% | 2.20% | < $0.001 (issuer pays) |
 
-That is a **92-96% reduction** in card processing fees compared to traditional networks.
+There are no assessment fees, no per-authorization fees, no batch processing fees, no online surcharges, and no interchange downgrades. The merchant pays the tier rate and nothing else. Card-present and card-not-present rates are identical.
 
-In the [issuer-mediated model](/overview#issuer-mediated-fees), an interchange fee of up to 2.50% is also deducted (paid to the card issuer). The settlement model depends on the cardholder's configuration, not the merchant's.
-
-For a merchant processing $1M in annual card volume on direct debit, that is the difference between $20,000-$30,000 in traditional fees versus $2,300-$4,500.
+For a merchant processing $1M in annual card volume:
+- **Direct Debit**: $0 in fees versus $5,000-$8,000 on legacy debit
+- **Consumer Credit**: $17,000 versus $20,500-$27,000 on Visa/MC credit
+- **Online merchants save the most**: no CNP surcharge means an e-commerce merchant processing $10M saves $35,000-$100,000 per year compared to legacy online rates
 
 ## No terminal changes
 
@@ -51,11 +51,13 @@ ColossusNet settles transactions **instantly**. Stablecoin balances are transfer
 
 There is no batch processing, no end-of-day clearing, and no T+2 delay. When the terminal shows "Approved," the stablecoins have already moved. On-chain balances are independently verifiable at any time through a block explorer or by querying the stablecoin contract.
 
-## No chargebacks
+## Chargebacks and disputes
 
-On-chain settlement is atomic and final. Once a transaction is confirmed, it cannot be reversed at the protocol level. All dispute resolution is managed by a third-party insurance provider outside the transaction flow. See [Settlement](/technical/settlement#disputes--chargebacks) for details.
+**Direct Debit**: No chargebacks. Transactions are final. The cardholder authorized the payment, the funds moved, and the merchant has them. This is how cash and direct payment apps work.
 
-Merchants are not exposed to chargeback fees, arbitration costs, or the representment burden of traditional card processing.
+**Consumer and Premium Credit**: Dispute resolution is backed by the issuer's $100K refundable deposit (separate from the settlement collateral pool). The on-chain transaction record provides an immutable audit trail for dispute evidence.
+
+In all cases, merchants are not exposed to chargeback fees, arbitration costs, or the representment burden of traditional card processing.
 
 ## Wire liquidation
 
@@ -63,7 +65,7 @@ If you prefer to receive funds in a traditional bank account rather than holding
 
 ## Fee transparency
 
-All fees are recorded on-chain. The network fee, acquirer fee, and swipe fee for every transaction are visible and immutable. There are no hidden surcharges, no bundled processor fees, and no opaque interchange tiers.
+All fees are recorded on-chain. Every transaction's cost breakdown is visible and auditable. There are no hidden surcharges, no bundled processor fees, and no opaque interchange tiers.
 
 ## Agentic commerce
 

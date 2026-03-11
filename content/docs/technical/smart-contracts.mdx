@@ -106,18 +106,17 @@ The settlement contract is deployed per-acquirer with a fixed stablecoin address
 
 The `AcquirerConfig` contract is a registry that stores acquirer-specific configuration including fee rates, merchant mappings, and terminal registrations.
 
-### Four-Tier Fee Structure
+### Fee Structure
 
-| Fee Type | Max Rate | Scope | Controlled By |
-|----------|----------|-------|---------------|
-| Acquirer Fee | 0.30% (30 bp) | Per-acquirer | Acquirer |
-| Swipe Fee | Fixed amount | Per-acquirer | Acquirer |
-| Interchange Fee | 2.50% (250 bp) | Global | Network Owner |
-| Network Fee | 0.15% (15 bp) | Global | Network Owner |
+| Fee Type | Rate | Scope | Controlled By |
+|----------|------|-------|---------------|
+| Interchange Fee | 0% (Direct Debit) / 1.70% (Consumer Credit) / 2.20% (Premium Credit) | Per-tier | Network Owner |
+| Network Fee | < $0.001 per transaction | Global | Network Owner |
+| Acquirer Markup | Per-acquirer | Per-acquirer | Acquirer |
 
-Fees are deducted from the transaction amount before the merchant receives the remainder. The acquirer controls their own fee and swipe fee; the network owner sets the interchange and network fees globally.
+Interchange fees are deducted from the transaction amount before the merchant receives the remainder. The network fee is paid by the issuer (credit tiers) or the cardholder (Direct Debit), never the merchant.
 
-> **Note:** The interchange fee only applies in the [issuer-mediated model](/overview#issuer-mediated) where an issuer posts collateral and funds transactions. In the [direct debit model](/overview#direct-debit) (no issuer), only the network fee, acquirer fee, and swipe fee are charged.
+> **Note:** In the [Direct Debit model](/overview#three-settlement-tiers), there is no interchange. The merchant receives the full transaction amount. In the [credit tiers](/overview#three-settlement-tiers), interchange flows to the issuer who posted the deposit.
 
 ### Key Mappings
 
@@ -132,11 +131,11 @@ uint48 acquirerId => AcquirerData
   └── mapping(uint64 => address) terminals    (terminalId => address)
 ```
 
-- **acquirerFeeRecipient**:the address that receives the acquirer's portion of fees
-- **acquirerFeeRate**:the acquirer fee expressed in basis points (max 30 bp)
-- **swipeFee**:a fixed per-transaction fee charged by the acquirer
-- **merchants**:maps merchant IDs to their on-chain settlement addresses
-- **terminals**:maps terminal IDs to their registered addresses for validation
+- **acquirerFeeRecipient**: the address that receives the acquirer's markup fees
+- **acquirerFeeRate**: the acquirer markup expressed in basis points
+- **swipeFee**: an optional fixed per-transaction fee set by the acquirer
+- **merchants**: maps merchant IDs to their on-chain settlement addresses
+- **terminals**: maps terminal IDs to their registered addresses for validation
 
 ---
 

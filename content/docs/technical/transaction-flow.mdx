@@ -5,14 +5,15 @@ description: Contact and contactless EMV transaction flows, issuer-mediated sett
 
 # Transaction Flow
 
-ColossusNet supports two settlement paths and three kernel types. This page covers the end-to-end transaction flow for each combination, from card tap to on-chain settlement.
+ColossusNet supports three settlement tiers and three kernel types. This page covers the end-to-end transaction flow for each combination, from card tap to on-chain settlement.
 
-## Settlement Paths
+## Settlement Tiers
 
-ColossusNet supports two transaction settlement paths:
+ColossusNet supports three transaction settlement tiers:
 
-1. **Direct debit**: The cardholder's ERC-4337 account holds stablecoins on the ColossusNet L2. Transactions debit directly from this balance.
-2. **Issuer-mediated**: A registered issuer posts collateral to ColossusNet and funds transactions on behalf of cardholders.
+1. **Direct Debit (0%)**: The cardholder's ERC-4337 account holds stablecoins on the ColossusNet L2. Transactions debit directly from this balance. The merchant receives the full amount.
+2. **Consumer Credit (1.70%)**: A registered issuer posts a $100K refundable deposit and funds transactions on behalf of cardholders. Permissionless issuance.
+3. **Premium Credit (2.20%)**: Same as Consumer Credit but at higher interchange. Permissioned issuance, capped at 20% of total card issuance.
 
 ## Direct Debit Transaction Flow
 
@@ -44,14 +45,14 @@ sequenceDiagram
 3. The terminal constructs an ISO 8583 MTI 0200 message containing the EMV data (DE55) and signature (DE62).
 4. The acquirer forwards the authorization request to the ColossusNet middleware.
 5. The middleware parses the ISO 8583 message, looks up the cardholder's ERC-4337 account by PAN, and constructs a UserOperation.
-6. The sequencer executes the UserOp: the EMVValidator verifies the P-256 signature on-chain via the RIP-7212 precompile, and the EMVSettlement module transfers stablecoins from the cardholder's account to the merchant (minus fees).
+6. The sequencer executes the UserOp: the EMVValidator verifies the P-256 signature on-chain via the RIP-7212 precompile, and the EMVSettlement module transfers stablecoins from the cardholder's account directly to the merchant.
 7. The sequencer returns a preconfirmation within 100ms.
 8. The middleware translates the result into an ISO 8583 MTI 0210 response and returns it to the acquirer.
 9. The acquirer forwards the authorization response to the terminal.
 
 ## Issuer-Mediated Transaction Flow
 
-In the issuer-mediated model, a registered issuer posts stablecoin collateral to a ColossusNet collateral pool. When a card transaction is received, ColossusNet forwards the card's cryptographic proof to the issuer. The issuer validates funds availability and returns a signed funding authorization. Using two signatures (the card's EMV signature and the issuer's funding signature), ColossusNet draws from the issuer's collateral pool to settle with the merchant.
+In the issuer-mediated model (Consumer Credit at 1.70% or Premium Credit at 2.20%), a registered issuer posts stablecoin collateral to a ColossusNet collateral pool. When a card transaction is received, ColossusNet forwards the card's cryptographic proof to the issuer. The issuer validates funds availability and returns a signed funding authorization. Using two signatures (the card's EMV signature and the issuer's funding signature), ColossusNet draws from the issuer's collateral pool to settle with the merchant instantly.
 
 ```mermaid
 sequenceDiagram
@@ -60,7 +61,7 @@ sequenceDiagram
     participant ACQ as Acquirer
     participant CN as ColossusNet
     participant ISS as Issuer
-    participant COL as CollateralPool
+    participant COL as Collateral Pool
 
     CH->>POS: Tap card (EMV contactless)
     POS-->>CH: Generate dynamic cryptogram (SDAD)
@@ -70,8 +71,8 @@ sequenceDiagram
     Note over ISS: Verify proof & authorize debit
     ISS-->>CN: Signed funding authorization
     Note over CN: Verify:<br/>1) Card EMV signature<br/>2) Issuer funding signature
-    CN->>COL: Execute draw against collateral<br/>(dual-signature validation)
-    COL-->>CN: Collateral allocation confirmed
+    CN->>COL: Draw from collateral pool<br/>(dual-signature validation)
+    COL-->>CN: Settlement confirmed
     CN-->>ACQ: Authorization response (0210 Approved)
     ACQ-->>POS: Approval
     POS-->>CH: Transaction complete
@@ -82,7 +83,7 @@ sequenceDiagram
 - The issuer must host a WebSocket signing endpoint at `/api/v1/eth_signRawTransactionSync`. The synchronous WebSocket design ensures issuer authorization fits within ColossusNet's 172ms authorization latency.
 - The collateral pool balance is enforced on-chain. Transactions that would exceed available collateral are declined.
 - Issuers register a **hook contract** on ColossusNet that executes within the transaction context. The hook validates that `txn.origin` matches the stored issuer address, ensuring only authorized issuers can draw against their collateral pool.
-- After merchant settlement (instant, from collateral), the issuer independently retrieves the settlement amount from the cardholder on the source chain. The cardholder's source chain account should have ColossusNet ERC-7579 modules installed, enabling the issuer to noncustodially retrieve stablecoins.
+- After merchant settlement (instant, from the issuer's collateral pool), the issuer independently retrieves the settlement amount from the cardholder on the source chain. The cardholder's source chain account should have ColossusNet ERC-7579 modules installed, enabling the issuer to noncustodially retrieve stablecoins.
 
 ### Issuer Settlement
 
