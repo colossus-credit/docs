@@ -1,15 +1,34 @@
 ---
 title: For Issuers
-description: How to integrate with ColossusNet as an issuer, including collateral model, signing API, interchange revenue, and cardholder settlement.
+description: How to integrate with ColossusNet as an issuer, including dual issuance, collateral model, interchange tiers, and cardholder settlement.
 ---
 
 # For Issuers
 
-ColossusNet gives banks and fintechs a new way to issue payment cards with attractive economics, flexible credit management, and built-in settlement infrastructure.
+Colossus gives banks and fintechs a new way to issue payment cards. Dual-issue with Colossus alongside your existing Visa or Mastercard program to earn higher interchange with instant settlement.
+
+## Dual issuance
+
+Your existing card program stays exactly as it is. Colossus is added as an additional network on your cards. When a cardholder transacts at a merchant that accepts Colossus, the transaction routes through ColossusNet at higher interchange with instant settlement. When they transact anywhere else, the card falls back to the primary network.
+
+New cards are issued with both networks enabled on your natural reissuance cycle. There is no requirement to reissue your entire portfolio at once.
+
+The [Durbin Amendment](https://en.wikipedia.org/wiki/Durbin_amendment) requires by law that every debit card carry at least two unaffiliated payment networks. Adding Colossus as the second network on a debit card is doing exactly what the law already mandates. For credit cards, the [Credit Card Competition Act](https://en.wikipedia.org/wiki/Credit_Card_Competition_Act) would extend dual-network requirements to credit. By dual-issuing with Colossus now, you are positioned ahead of potential regulation.
+
+Colossus transactions are purely incremental. At zero Colossus merchant acceptance, your card is exactly what it was yesterday. At any level of Colossus acceptance, you are earning more.
 
 ## Revenue
 
-Issuers earn **interchange fees of up to 2.50%** (250 basis points) on every ColossusNet transaction processed through the issuer-mediated model. The interchange rate is a global network parameter, and the full amount flows to the issuer.
+Issuers earn the full interchange on every ColossusNet transaction. No network assessments, no per-authorization fees, no settlement fees.
+
+| Tier | Interchange | Network Fee (Issuer Pays) | Issuance |
+|------|-------------|--------------------------|----------|
+| Consumer Credit | 1.70% (170 bps) | < $0.001 per txn | Permissionless, $100K deposit |
+| Premium Credit | 2.20% (220 bps) | < $0.001 per txn | Permissioned, KYC/AML mandatory |
+
+On a $100 Consumer Credit transaction, the issuer nets approximately $1.699. On Visa, after network deductions (assessments, per-auth fees, settlement fees), the net is approximately $1.55-$1.65. The network fee on ColossusNet trends downward over time as the underlying infrastructure gets cheaper, improving margins year over year.
+
+Interchange is settled instantly. On legacy networks, the issuer authorizes a transaction on Monday but does not receive the interchange payment until Wednesday. On ColossusNet, the interchange is settled in seconds.
 
 ## How the collateral model works
 
@@ -20,11 +39,25 @@ Rather than funding transactions through traditional banking rails, ColossusNet 
 3. **Dual-signature settlement**: ColossusNet verifies both the card's EMV signature (ECDSA P-256) and your funding signature, then draws from your collateral pool to settle with the merchant instantly.
 4. **Top up as needed**: Periodically replenish your collateral balance. Transactions that would exceed available collateral are declined automatically by on-chain enforcement.
 
-This model gives you full control over your exposure while enabling instant merchant settlement.
+The merchant is paid instantly from your collateral pool. You then independently retrieve the settlement amount from the cardholder on the source chain. The cardholder's source chain account has the ColossusNet ERC-7579 modules installed, enabling you to noncustodially retrieve settlement amounts. See [Cross-Chain Architecture](/technical/cross-chain#how-issuer-settlement-works-across-chains) for the full flow.
 
-## Asynchronous cardholder settlement
+## Consumer Credit
 
-After the merchant is paid from your collateral pool, you independently retrieve the settlement amount from the cardholder. The cardholder's source chain account has the ColossusNet ERC-7579 modules installed, enabling you to noncustodially retrieve settlement amounts. See [Cross-Chain Architecture](/technical/cross-chain#how-issuer-settlement-works-across-chains) for the full flow.
+Consumer Credit issuance is permissionless with a **$100,000 refundable deposit**. Any bank, fintech, credit union, or lending platform can issue Consumer Credit cards by posting the deposit. KYC is optional for Consumer Credit issuers.
+
+The $100K deposit is held by the protocol and covers dispute resolution for chargebacks and fraud. The full deposit is returned if you leave the network.
+
+**2026 Launch Incentive**: The $100,000 deposit is waived for the first 10 issuers.
+
+## Premium Credit
+
+Premium Credit requires permission from the network. Colossus grants Premium status based on the issuer's demonstrated ability to deliver a genuinely differentiated card product: travel benefits, concierge services, lounge access, elevated insurance, and reward structures that justify the higher interchange rate.
+
+- **KYC/AML mandatory** for all Premium Credit issuers.
+- **Deposit amount set by request** based on projected volume and risk profile.
+- **20% issuance cap**: Premium Credit cards will never exceed 20% of total ColossusNet card issuance, preventing the portfolio migration problem seen on legacy networks where issuers steadily moved their entire card base into premium tiers to capture higher interchange.
+
+Premium status is reviewed periodically. If an issuer reduces their benefits package while continuing to charge Premium interchange, Colossus can revoke the designation and move the issuer's cards to the Consumer tier at 1.70%.
 
 ## Issuer hooks
 
